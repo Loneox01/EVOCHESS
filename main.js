@@ -1,11 +1,9 @@
-import { Knight } from './Pieces/Knight.js';
-import { Bishop } from './Pieces/Bishop.js';
-import { Rook } from './Pieces/Rook.js';
-import { Queen } from './Pieces/Queen.js';
-import { King } from './Pieces/King.js';
-import { Pawn } from './Pieces/Pawn.js';
-
-console.log('reached')
+import { Knight } from './Pieces/KnightFiles/Knight.js';
+import { Bishop } from './Pieces/BishopFiles/Bishop.js';
+import { Rook } from './Pieces/RookFiles/Rook.js';
+import { Queen } from './Pieces/QueenFiles/Queen.js';
+import { King } from './Pieces/KingFiles/King.js';
+import { Pawn } from './Pieces/PawnFiles/Pawn.js';
 
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
@@ -15,6 +13,7 @@ const LIGHT = '#f0d9b5'; // Light tileLens
 const DARK = '#b58863'; // Dark tileLens
 
 let turn = "white"; // Turn tracker, either "white" or "black"
+let activePromotion = false;
 
 // Initial setup of the board
 let board = Array(8).fill(null).map(() => Array(8).fill(null));
@@ -37,12 +36,14 @@ function drawBoard() {
 function showPromotionMenu(onSelectCallback) {
     const menu = document.getElementById("promotionMenu");
     menu.style.display = "block";
+    activePromotion = true;
 
     menu.onchange = function () {
         const choice = menu.value;
         menu.style.display = "none"; // hide again after choice
         menu.value = ""; // reset
 
+        activePromotion = false;
         onSelectCallback(choice); // pass choice back to main logic
     };
 }
@@ -139,6 +140,9 @@ function redraw() {
 }
 
 function handleClick(row, col) {
+    if (activePromotion) {
+        return;
+    }
     const clickedPiece = board[row][col];
     const originalTurn = turn; // Used later, niche but necessary
 
@@ -271,6 +275,7 @@ export function setup() {
 }
 
 export function startGame() {
+
     const canvas = document.getElementById("board");
     canvas.onclick = null; // reset
     canvas.onclick = (e) => {
@@ -295,6 +300,7 @@ export function startGame() {
 
 
 canvas.addEventListener('click', (e) => {
+
     // add
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;

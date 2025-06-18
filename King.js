@@ -1,5 +1,5 @@
-import { Piece } from './Piece.js';
-import { Rook } from './Rook.js';
+import { Piece } from '../Piece.js';
+import { Rook } from '../RookFiles/Rook.js';
 
 export class King extends Piece {
     constructor(color) {
@@ -43,7 +43,9 @@ export class King extends Piece {
             let castleBlocked = false;
             if (board[row][col + 1] === null && board[row][col + 2] === null && board[row][col + 3] instanceof Rook) {
                 if (board[row][col + 3].hasMoved === false) {
-
+                    // Loop through opposing pieces and check if any target current square or
+                    // adjacent square in casteling target direction
+                    // Allow casteling INTO check, not IN or THROUGH
                     // Generational family reunion of if statements
                     for (let r = 0; r < board.length; r++) {
                         for (let c = 0; c < board[0].length; c++) {

@@ -1,9 +1,10 @@
-import { Knight } from './Pieces/Knight.js';
-import { Bishop } from './Pieces/Bishop.js';
-import { Rook } from './Pieces/Rook.js';
-import { Queen } from './Pieces/Queen.js';
-import { King } from './Pieces/King.js';
-import { Pawn } from './Pieces/Pawn.js';
+import { Knight } from './Pieces/KnightFiles/Knight.js';
+import { Bishop } from './Pieces/BishopFiles/Bishop.js';
+import { Rook } from './Pieces/RookFiles/Rook.js';
+import { Queen } from './Pieces/QueenFiles/Queen.js';
+import { King } from './Pieces/KingFiles/King.js';
+import { Pawn } from './Pieces/PawnFiles/Pawn.js';
+import { EvoPawn } from './Pieces/PawnFiles/EvoPawn.js';
 
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
@@ -12,6 +13,7 @@ const tileLen = canvas.width / 8;
 const LIGHT = '#f0d9b5'; // Light tileLens
 const DARK = '#b58863'; // Dark tileLens
 
+let activePromotion = false; // True if promotion menu is present
 let turn = "white"; // Turn tracker, either "white" or "black"
 
 // Initial setup of the board
@@ -35,12 +37,14 @@ function drawBoard() {
 function showPromotionMenu(onSelectCallback) {
     const menu = document.getElementById("promotionMenu");
     menu.style.display = "block";
+    activePromotion = true;
 
     menu.onchange = function () {
         const choice = menu.value;
         menu.style.display = "none"; // hide again after choice
         menu.value = ""; // reset
 
+        activePromotion = false;
         onSelectCallback(choice); // pass choice back to main logic
     };
 }
@@ -71,18 +75,18 @@ function initializeBoard() {
 
     for (let i = 0; i < 8; i++) {
         if (i != 4) {
-            board[0][i] = new Pawn('black');
+            board[0][i] = new EvoPawn('black');
         }
     }
     board[0][4] = new King('black');
     for (let i = 1; i < 7; i++) {
-        board[1][i] = new Pawn('black');
+        board[1][i] = new EvoPawn('black');
     }
     for (let i = 2; i < 6; i++) {
-        board[2][i] = new Pawn('black');
+        board[2][i] = new EvoPawn('black');
     }
     for (let i = 3; i < 5; i++) {
-        board[3][i] = new Pawn('black');
+        board[3][i] = new EvoPawn('black');
     }
 
     board[7][0] = new Rook('white');
@@ -141,6 +145,9 @@ function redraw() {
 }
 
 function handleClick(row, col) {
+    if (activePromotion) {
+        return;
+    }
     const clickedPiece = board[row][col];
     const originalTurn = turn; // Used later, niche but necessary
 
@@ -276,6 +283,7 @@ export function setup() {
 export function startGame() {
     canvas.onclick = null; // reset
     canvas.onclick = (e) => {
+
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
@@ -290,6 +298,7 @@ export function startGame() {
 }
 
 canvas.addEventListener('click', (e) => {
+
     // interactive
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
