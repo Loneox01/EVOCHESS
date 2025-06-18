@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Web Chess</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <div id="container">
+        <div id="menu">
+            <h1>Select Game Mode</h1>
+            <button onclick="loadGame('main')">Classic Mode</button>
+            <button onclick="loadGame('pawnLevel')">Story: 1</button>
+        </div>
+
+        <div id="wrapper">
+            <canvas id="board" width="480" height="480"></canvas>
+
+            <!-- Game Over Overlay -->
+            <div id="gameOverOverlay" style="display: none;">
+                <h1 id="winnerText">Game Over</h1>
+                <p>Click to play again</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Promotion Menu -->
+    <select id="promotionMenu" style="display: none;">
+        <option value="Queen">Queen</option>
+        <option value="Knight">Knight</option>
+        <option value="Rook">Rook</option>
+        <option value="Bishop">Bishop</option>
+        <option value="King">King</option>
+    </select>
+
+    <script type="module" src="loader.js"></script>
+</body>
+
+
+
+</html>

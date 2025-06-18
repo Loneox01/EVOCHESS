@@ -1,0 +1,103 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: #ececec;
+    margin: 0;
+}
+
+#wrapper {
+    position: relative;
+}
+
+canvas {
+    border: 2px solid #333;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    display: block;
+}
+
+#promotionMenu {
+    position: absolute;
+    top: 50%;
+    /* Vertically centered */
+    left: 50%;
+    /* Horizontally centered */
+    transform: translate(-50%, -50%);
+    font-size: 18px;
+    padding: 6px 12px;
+    border: 2px solid #333;
+    border-radius: 5px;
+    background: white;
+    z-index: 10;
+}
+
+#gameOverOverlay {
+    position: absolute;
+    top: 150px;
+    left: 120px;
+    width: 240px;
+    /* match canvas width */
+    height: 180px;
+    /* match canvas height */
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    font-family: sans-serif;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    cursor: pointer;
+    text-align: center;
+    animation: fadeIn 0.7s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+#container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 40px;
+    margin-top: 40px;
+}
+
+#menu {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+}
+
+#menu h1 {
+    font-size: 1.4em;
+    margin-bottom: 10px;
+}
+
+#menu button {
+    padding: 10px 16px;
+    font-size: 1em;
+    cursor: pointer;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    transition: background 0.3s;
+}
+
+#menu button:hover {
+    background: #45a049;
+}
