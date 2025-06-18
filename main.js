@@ -1,9 +1,9 @@
-import { Knight } from './Pieces/KnightFiles/Knight.js';
-import { Bishop } from './Pieces/BishopFiles/Bishop.js';
-import { Rook } from './Pieces/RookFiles/Rook.js';
-import { Queen } from './Pieces/QueenFiles/Queen.js';
-import { King } from './Pieces/KingFiles/King.js';
-import { Pawn } from './Pieces/PawnFiles/Pawn.js';
+import { Knight } from '../Pieces/KnightFiles/Knight.js';
+import { Bishop } from '../Pieces/BishopFiles/Bishop.js';
+import { Rook } from '../Pieces/RookFiles/Rook.js';
+import { Queen } from '../Pieces/QueenFiles/Queen.js';
+import { King } from '../Pieces/KingFiles/King.js';
+import { Pawn } from '../Pieces/PawnFiles/Pawn.js';
 
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
@@ -78,8 +78,8 @@ function initializeBoard() {
     board[0][6] = new Knight('black');
     board[0][2] = new Bishop('black');
     board[0][5] = new Bishop('black');
-    board[0][3] = new Queen('black');
-    board[0][4] = new King('black');
+    board[0][3] = new Queen('black', 0, 3);
+    board[0][4] = new King('black', 0, 4);
     for (let i = 0; i < 8; i++) {
         board[1][i] = new Pawn('black');
     }
@@ -90,8 +90,8 @@ function initializeBoard() {
     board[7][6] = new Knight('white');
     board[7][2] = new Bishop('white');
     board[7][5] = new Bishop('white');
-    board[7][3] = new Queen('white');
-    board[7][4] = new King('white');
+    board[7][3] = new Queen('white', 7, 3);
+    board[7][4] = new King('white', 7, 4);
     for (let i = 0; i < 8; i++) {
         board[6][i] = new Pawn('white');
     }

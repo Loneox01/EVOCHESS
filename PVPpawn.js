@@ -12,9 +12,7 @@ const tileLen = canvas.width / 8;
 
 const LIGHT = '#f0d9b5'; // Light tileLens
 const DARK = '#b58863'; // Dark tileLens
-const blackPieces = Array(20).fill(null);
 
-let blackMove = false;
 let activePromotion = false; // True if promotion menu is present
 let turn = "white"; // Turn tracker, either "white" or "black"
 
@@ -75,30 +73,20 @@ function initializeBoard() {
     // Default board
     board = Array(8).fill(null).map(() => Array(8).fill(null));
 
-    const k = new King('black', 0, 4);
-    board[0][4] = k;
-    blackPieces[4] = k;
     for (let i = 0; i < 8; i++) {
         if (i != 4) {
-            const p = new EvoPawn('black', 0, i);
-            board[0][i] = p;
-            blackPieces[i] = p;
+            board[0][i] = new EvoPawn('black', 0, i);
         }
     }
+    board[0][4] = new King('black');
     for (let i = 1; i < 7; i++) {
-        const p = new EvoPawn('black', 1, i);
-        board[1][i] = p;
-        blackPieces[8 + i - 1] = p;
+        board[1][i] = new EvoPawn('black', 1, i);
     }
     for (let i = 2; i < 6; i++) {
-        const p = new EvoPawn('black', 2, i);
-        board[2][i] = p;
-        blackPieces[14 + i - 2] = p;
+        board[2][i] = new EvoPawn('black', 2, i);
     }
     for (let i = 3; i < 5; i++) {
-        const p = new EvoPawn('black', 3, i);
-        board[3][i] = p;
-        blackPieces[18 + i - 3] = p;
+        board[3][i] = new EvoPawn('black', 3, i);
     }
 
     board[7][0] = new Rook('white');
@@ -139,7 +127,6 @@ function drawPieces() {
                 ctx.fillStyle = 'rgba(255, 255, 0, 0.4)'; // Highlight
                 ctx.fillRect(col * tileLen, row * tileLen, tileLen, tileLen);
             }
-
         }
     }
 }
@@ -162,8 +149,8 @@ function redraw() {
     drawMoves(); // Top layer
 }
 
-async function handleClick(row, col) {
-    if (activePromotion || blackMove) {
+function handleClick(row, col) {
+    if (activePromotion) {
         return;
     }
     const clickedPiece = board[row][col];
@@ -212,15 +199,9 @@ async function handleClick(row, col) {
             }
             lastMovedPiece = movedPiece; // Update LMP
             if (turn === "white") {
-                moves = []; // Clear possible moves
-                selectedTile = null; // Clear selection
-                redraw();
-                blackMove = true;
-                await blackBot();
-                blackMove = false;
+                turn = "black";
             }
             else {
-                console.log('Move error');
                 turn = "white";
             }
             // Switch turns
@@ -297,113 +278,6 @@ function triggerReset(winner) {
     overlay.style.display = 'flex';
 }
 
-async function blackBot() {
-    // Remove taken/removed pieces from list
-
-
-    for (let i = blackPieces.length - 1; i >= 0; i--) {
-        let piece = blackPieces[i];
-
-        if (board[piece.rank][piece.file] !== piece) {
-            blackPieces.splice(i, 1);
-        }
-    }
-
-    await delay(500);
-
-    for (let piece of blackPieces) {
-
-        const c = piece.captures(board, piece.rank, piece.file, lastMovedPiece); // Capture list
-        if (c.length > 0) {
-            // Has a capturable target
-            const pr = piece.rank;
-            const pc = piece.file;
-
-            // Highlight moved piece, wait, unhighlight
-            selectedTile = { row: pr, col: pc };
-            redraw();
-
-            await delay(300);
-
-            selectedTile = null;
-            redraw();
-
-            const randomCapture = c[Math.floor(Math.random() * c.length)];
-            const rCr = randomCapture.row;
-            const rCc = randomCapture.col;
-            const to = { row: rCr, col: rCc };
-
-            const from = { row: pr, col: pc };
-            let output = null;
-
-            output = piece.movePiece(board, to, from, randomCapture);
-
-            if (output === 'PROMOTE') {
-                board[pr][pc] = null;
-                let q = new Queen('black', randomCapture.row, randomCapture.col);
-                board[randomCapture.row][randomCapture.col] = q;
-                blackPieces.push(q);
-            }
-            else {
-                board = output;
-            }
-            lastMovedPiece = piece;
-            return;
-        }
-
-    }
-
-    // Left to push (Or move queen if applicable)
-    let shmoves = []
-    let rP = null;
-    let iterations = 0;
-    while (shmoves.length <= 0) {
-        rP = blackPieces[Math.floor(Math.random() * blackPieces.length)]; // randomPiece
-        shmoves = rP.getMoves(board, rP.rank, rP.file); // all moves of randomPiece
-        iterations++;
-        if (iterations >= 1000) {
-            lastMovedPiece = null;
-            return;
-        }
-    }
-    let rM = shmoves[Math.floor(Math.random() * shmoves.length)]; // randomMove
-
-    const pr = rP.rank; // Piece row
-    const pc = rP.file; // Piece col
-
-    // Highlight moved piece, wait, unhighlight
-    selectedTile = { row: pr, col: pc };
-    redraw();
-
-    await delay(300);
-
-    selectedTile = null;
-    redraw();
-
-    const from = { row: pr, col: pc };
-    const mr = rM.row; // Move row
-    const mc = rM.col; // Move col
-    const to = { row: mr, col: mc };
-    let output = rP.movePiece(board, to, from, rM);
-
-    if (output === 'PROMOTE') {
-        board[pr][pc] = null;
-        let q = new Queen('black', mr, mc);
-        board[mr][mc] = q;
-        blackPieces.push(q);
-    }
-    else {
-        board = output;
-    }
-
-    lastMovedPiece = rP;
-    return;
-
-}
-
-function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 export function setup() {
     initializeBoard();

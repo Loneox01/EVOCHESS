@@ -2,9 +2,10 @@ import { Piece } from '../Piece.js';
 import { Rook } from '../RookFiles/Rook.js';
 
 export class King extends Piece {
-    constructor(color) {
-        super(color);
+    constructor(color, rank, file) {
+        super(color, rank, file);
         this.hasMoved = false;
+        this.evod = false;
     }
 
     getSymbol() {
@@ -95,6 +96,38 @@ export class King extends Piece {
         return moves;
     }
 
+    captures(board, row, col) {
+        const moves = [];
+        const directions = [
+            [1, 1],   // down-right
+            [-1, 1],  // up-right
+            [1, -1],  // down-left
+            [-1, -1],  // up-left
+            [1, 0],   // up
+            [-1, 0],  // down
+            [0, 1],  // right
+            [0, -1]  // left
+        ];
+
+        for (const [dr, dc] of directions) {
+            let r = row + dr;
+            let c = col + dc;
+
+            if (inBounds(r, c)) {
+                const target = board[r][c];
+                if (target === null) {
+                    // do nothing
+                } else if (target.color !== this.color) {
+                    moves.push({ row: r, col: c });
+                }
+
+            }
+        }
+
+
+        return moves;
+    }
+
     isPossibleMove(board, row, col, targets) {
         const directions = [
             [1, 1],   // down-right
@@ -127,7 +160,10 @@ export class King extends Piece {
         }
     }
 
-    movePiece(board, to, from) {
+    movePiece(board, to, from, move = null) {
+
+        this.rank = to.row;
+        this.file = to.col;
 
         if (this.hasMoved === false && Math.abs(to.col - from.col) === 2) {
 

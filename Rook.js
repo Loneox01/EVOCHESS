@@ -1,9 +1,10 @@
 import { Piece } from '../Piece.js';
 
 export class Rook extends Piece {
-    constructor(color) {
-        super(color);
+    constructor(color, rank, file) {
+        super(color, rank, file);
         this.hasMoved = false;
+        this.evod = false;
     }
 
     getSymbol() {
@@ -27,6 +28,37 @@ export class Rook extends Piece {
                 const target = board[r][c];
                 if (target === null) {
                     moves.push({ row: r, col: c });
+                } else {
+                    if (target.color !== this.color) {
+                        moves.push({ row: r, col: c });
+                    }
+                    break; // stop on first piece, whether captured or blocked
+                }
+                r += dr;
+                c += dc;
+            }
+        }
+
+        return moves;
+    }
+
+    captures(board, row, col) {
+        const moves = [];
+        const directions = [
+            [1, 0],   // up
+            [-1, 0],  // down
+            [0, 1],  // right
+            [0, -1]  // left
+        ];
+
+        for (const [dr, dc] of directions) {
+            let r = row + dr;
+            let c = col + dc;
+
+            while (inBounds(r, c)) {
+                const target = board[r][c];
+                if (target === null) {
+                    // do nothing
                 } else {
                     if (target.color !== this.color) {
                         moves.push({ row: r, col: c });
@@ -74,7 +106,7 @@ export class Rook extends Piece {
         return false;
     }
 
-    movePiece(board, to, from) {
+    movePiece(board, to, from, move = null) {
         board[to.row][to.col] = this;
         board[from.row][from.col] = null;
 

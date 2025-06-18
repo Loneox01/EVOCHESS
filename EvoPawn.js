@@ -1,13 +1,14 @@
 import { Pawn } from './Pawn.js';
 
 export class EvoPawn extends Pawn {
-    constructor(color) {
-        super(color);
+    constructor(color, rank, file) {
+        super(color, rank, file);
         this.moved2 = false;
         this.homeSquare = true;
+        this.evod = true;
     }
 
-    getMoves(board, row, col, lmp) {
+    getMoves(board, row, col, lmp = null) {
         const moves = [];
         if (this.color === 'white') {
             // PUSHING P
@@ -205,7 +206,9 @@ export class EvoPawn extends Pawn {
 
     }
 
-    movePiece(board, to, from, move) {
+    movePiece(board, to, from, move = null) {
+        this.rank = to.row;
+        this.file = to.col;
         if (Math.abs(from.row - to.row) >= 2) {
             this.homeSquare = false;
             this.moved2 = true;
@@ -213,37 +216,39 @@ export class EvoPawn extends Pawn {
             this.moved2 = false;
         }
 
-        if (move.type === 'passantable') {
-            if (this.color === 'white') {
-                board[to.row + 1][to.col] = null;
+        if (move != null) {
+            if (move.type === 'passantable') {
+                if (this.color === 'white') {
+                    board[to.row + 1][to.col] = null;
+                }
+                else {
+                    board[to.row - 1][to.col] = null;
+                }
             }
-            else {
-                board[to.row - 1][to.col] = null;
-            }
-        }
-        if (move.type === 'croissantable') {
-            if (to.row === from.row + 2) {
-                this.moved2 = true; // This should already be covered by the if at the beginning, but just in case
-                board[from.row + 1][from.col] = null;
-            }
-            else if (to.row === from.row - 2) {
-                board[from.row - 1][from.col] = null; // Same with this
-            }
-            else if (to.col === from.col + 2) {
-                board[from.row][from.col + 1] = null;
-            }
-            else if (to.col === from.col - 2) {
-                board[from.row][from.col - 1] = null;
-            }
-            else {
-                console.log("croissant error");
+            if (move.type === 'croissantable') {
+                if (to.row === from.row + 2) {
+                    this.moved2 = true; // This should already be covered by the if at the beginning, but just in case
+                    board[from.row + 1][from.col] = null;
+                }
+                else if (to.row === from.row - 2) {
+                    board[from.row - 1][from.col] = null; // Same with this
+                }
+                else if (to.col === from.col + 2) {
+                    board[from.row][from.col + 1] = null;
+                }
+                else if (to.col === from.col - 2) {
+                    board[from.row][from.col - 1] = null;
+                }
+                else {
+                    console.log("croissant error");
+
+                }
             }
         }
 
         if (this.homeSquare) {
             this.homeSquare = false;
         }
-
         if ((this.color === 'black' && to.row === 7) || (this.color === 'white' && to.row === 0)) {
             return 'PROMOTE';
         }
@@ -251,6 +256,106 @@ export class EvoPawn extends Pawn {
         board[from.row][from.col] = null;
 
         return board;
+    }
+
+    captures(board, row, col, lmp = null) {
+        const moves = [];
+        if (this.color === 'white') {
+
+            // Capturing
+
+            if (inBounds(row - 1, col + 1)) {
+                if (board[row - 1][col + 1] !== null && board[row - 1][col + 1].color !== this.color) {
+                    moves.push({ row: row - 1, col: col + 1 });
+                }
+                else if (board[row][col + 1] != null && board[row][col + 1] instanceof Pawn) {
+                    // EN CROISSANT
+                    let theVictim = board[row][col + 1]
+                    if (theVictim === lmp && theVictim.moved2) {
+                        moves.push({ row: row - 1, col: col + 1, type: "passantable" });
+                    }
+                }
+            }
+            if (inBounds(row - 1, col - 1)) {
+                if (board[row - 1][col - 1] !== null && board[row - 1][col - 1].color !== this.color) {
+                    moves.push({ row: row - 1, col: col - 1 });
+                }
+                else if (board[row][col - 1] != null && board[row][col - 1] instanceof Pawn) {
+                    // EN CROISSANT
+                    let theVictim = board[row][col - 1]
+                    if (theVictim === lmp && theVictim.moved2) {
+                        moves.push({ row: row - 1, col: col - 1, type: "passantable" });
+                    }
+                }
+            }
+
+            // Added real En Croissant
+            if (inBounds(row - 2, col) && board[row - 2][col] == null) {
+                if (board[row - 1][col] != null && board[row - 1][col].color != this.color) {
+                    moves.push({ row: row - 2, col: col, type: "croissantable" });
+                }
+            }
+            if (inBounds(row, col + 2) && board[row][col + 2] == null) {
+                if (board[row][col + 1] != null && board[row][col + 1].color != this.color) {
+                    moves.push({ row: row, col: col + 2, type: "croissantable" });
+                }
+            }
+            if (inBounds(row, col - 2) && board[row][col - 2] == null) {
+                if (board[row][col - 1] != null && board[row][col - 1].color != this.color) {
+                    moves.push({ row: row, col: col - 2, type: "croissantable" });
+                }
+            }
+
+        }
+        else {
+            // Capturing
+
+            if (inBounds(row + 1, col + 1)) {
+                if (board[row + 1][col + 1] !== null && board[row + 1][col + 1].color !== this.color) {
+                    moves.push({ row: row + 1, col: col + 1 });
+                }
+                else if (board[row][col + 1] != null && board[row][col + 1] instanceof Pawn) {
+                    // EN CROISSANT
+                    let theVictim = board[row][col + 1]
+                    if (theVictim === lmp && theVictim.moved2) {
+                        moves.push({ row: row + 1, col: col + 1, type: "passantable" }); // New key
+                    }
+                }
+            }
+            if (inBounds(row + 1, col - 1)) {
+                if (board[row + 1][col - 1] !== null && board[row + 1][col - 1].color !== this.color) {
+                    moves.push({ row: row + 1, col: col - 1 });
+                }
+                else if (board[row][col - 1] != null && board[row][col - 1] instanceof Pawn) {
+                    // EN CROISSANT
+                    let theVictim = board[row][col - 1]
+                    if (theVictim === lmp && theVictim.moved2) {
+                        moves.push({ row: row + 1, col: col - 1, type: "passantable" });
+                    }
+                }
+            }
+
+            // Added real En Croissant
+            if (inBounds(row + 2, col) && board[row + 2][col] == null) {
+                if (board[row + 1][col] != null && board[row + 1][col].color != this.color) {
+                    moves.push({ row: row + 2, col: col, type: "croissantable" });
+                }
+            }
+            if (inBounds(row, col + 2) && board[row][col + 2] == null) {
+                if (board[row][col + 1] != null && board[row][col + 1].color != this.color) {
+                    moves.push({ row: row, col: col + 2, type: "croissantable" });
+                }
+            }
+            if (inBounds(row, col - 2) && board[row][col - 2] == null) {
+                if (board[row][col - 1] != null && board[row][col - 1].color != this.color) {
+                    moves.push({ row: row, col: col - 2, type: "croissantable" });
+                }
+            }
+
+
+        }
+
+        return moves;
     }
 }
 

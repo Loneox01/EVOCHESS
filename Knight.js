@@ -1,8 +1,9 @@
 import { Piece } from '../Piece.js';
 
 export class Knight extends Piece {
-    constructor(color) {
-        super(color);
+    constructor(color, rank, file) {
+        super(color, rank, file);
+        this.evod = false;
     }
 
     getSymbol() {
@@ -25,6 +26,30 @@ export class Knight extends Piece {
             if (inBounds(r, c)) {
                 const target = board[r][c];
                 if (!target || target.color !== this.color) {
+                    moves.push({ row: r, col: c });
+                }
+            }
+        }
+
+        return moves;
+    }
+
+    captures(board, row, col) {
+        const moves = [];
+        const deltas = [
+            [-2, -1], [-2, 1],
+            [-1, -2], [-1, 2],
+            [1, -2], [1, 2],
+            [2, -1], [2, 1]
+        ];
+
+        for (const [dr, dc] of deltas) {
+            const r = row + dr;
+            const c = col + dc;
+
+            if (inBounds(r, c)) {
+                const target = board[r][c];
+                if (target != null && target.color !== this.color) {
                     moves.push({ row: r, col: c });
                 }
             }

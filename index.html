@@ -10,9 +10,9 @@
 <body>
     <div id="container">
         <div id="menu">
-            <h1>Select Game Mode</h1>
-            <button onclick="loadGame('main')">Classic Mode</button>
-            <button onclick="loadGame('pawnLevel')">Story: 1</button>
+            <h1>Select PVE</h1>
+
+            <button onclick="loadGame('/Levels/pawnLevel')">Story: P</button>
         </div>
 
         <div id="wrapper">
@@ -23,6 +23,12 @@
                 <h1 id="winnerText">Game Over</h1>
                 <p>Click to play again</p>
             </div>
+        </div>
+
+        <div id="altMenu">
+            <h1>Select PVP</h1>
+            <button onclick="loadGame('/Levels/main')">Classic Mode</button>
+            <button onclick="loadGame('/Levels/PVPpawn')">PVP: P</button>
         </div>
     </div>
 
@@ -38,6 +44,7 @@
 
     <script type="module" src="loader.js"></script>
 </body>
+
 
 
 
