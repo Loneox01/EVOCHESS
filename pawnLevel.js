@@ -163,8 +163,18 @@ function redraw() {
 }
 
 async function handleClick(row, col) {
-    if (activePromotion || blackMove) {
-        return;
+    if (activePromotion || blackMove || row === col === null) {
+        if (turn !== 'black') {
+            return;
+        }
+        else {
+            turn = "white";
+            await blackBot();
+            blackMove = false;
+            redraw();
+            return;
+        }
+
     }
     const clickedPiece = board[row][col];
     const originalTurn = turn; // Used later, niche but necessary
@@ -186,11 +196,15 @@ async function handleClick(row, col) {
 
                         // Update state
                         lastMovedPiece = movedPiece;
-                        turn = (turn === "white") ? "black" : "white";
                         moves = [];
                         selectedTile = null;
 
                         redraw();
+
+                        if (!blackMove) {
+                            turn = 'black';
+                            blackMove = true;
+                        }
 
                         let gameStatus = gameOver(board);
                         if (gameStatus != null) {
@@ -200,6 +214,8 @@ async function handleClick(row, col) {
                                 restartGame();
                             });
                         }
+
+                        handleClick(null, null);
                     });
 
                     return; // prevents further logic from running until promotion completes
@@ -298,6 +314,18 @@ function triggerReset(winner) {
 }
 
 async function blackBot() {
+
+    // Check game over
+
+    let gameStatus = gameOver(board);
+    if (gameStatus != null) {
+        triggerReset(gameStatus);
+        document.getElementById('gameOverOverlay').addEventListener('click', () => {
+            document.getElementById('gameOverOverlay').style.display = 'none';
+            restartGame();
+            return; // shouldn't get here.
+        });
+    }
     // Remove taken/removed pieces from list
 
 
@@ -412,6 +440,13 @@ export function setup() {
 }
 
 export function startGame() {
+
+    document.getElementById("levelMessage").textContent =
+        `Evo Pawn: Active Ability: En Croissant (left, right, forward).    
+        Can take adjacent opposing piece if space past it is a free space.   
+        Move 2 spaces, capture opposing piece in intermediary square.   
+        Pawns that En Croissant vertically are subject to En Passant.` ;
+
     canvas.onclick = null; // reset
     canvas.onclick = (e) => {
 

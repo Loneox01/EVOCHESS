@@ -5,6 +5,8 @@ import { Queen } from '../Pieces/QueenFiles/Queen.js';
 import { King } from '../Pieces/KingFiles/King.js';
 import { Pawn } from '../Pieces/PawnFiles/Pawn.js';
 import { EvoPawn } from '../Pieces/PawnFiles/EvoPawn.js';
+import { Piece } from '../Pieces/Piece.js';
+import { EvoKnight } from '../Pieces/KnightFiles/EvoKnight.js';
 
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
@@ -12,7 +14,9 @@ const tileLen = canvas.width / 8;
 
 const LIGHT = '#f0d9b5'; // Light tileLens
 const DARK = '#b58863'; // Dark tileLens
+const blackPieces = Array(19).fill(null);
 
+let blackMove = false;
 let activePromotion = false; // True if promotion menu is present
 let turn = "white"; // Turn tracker, either "white" or "black"
 
@@ -21,6 +25,8 @@ let board = Array(8).fill(null).map(() => Array(8).fill(null));
 let selectedTile = null;
 let moves = [];
 let lastMovedPiece = null; // For tracking, i.e. the Goated en passant
+let whiteKing = null; // For bot tracking
+let blackKing = null; // Same as above
 
 function drawBoard() {
     // Base board
@@ -73,22 +79,52 @@ function initializeBoard() {
     // Default board
     board = Array(8).fill(null).map(() => Array(8).fill(null));
 
-    for (let i = 0; i < 8; i++) {
-        if (i != 4) {
-            board[0][i] = new EvoPawn('black', 0, i);
-        }
-    }
-    board[0][4] = new King('black');
-    for (let i = 1; i < 7; i++) {
-        board[1][i] = new EvoPawn('black', 1, i);
-    }
-    for (let i = 2; i < 6; i++) {
-        board[2][i] = new EvoPawn('black', 2, i);
-    }
-    for (let i = 3; i < 5; i++) {
-        board[3][i] = new EvoPawn('black', 3, i);
-    }
+    const k = new King('black', 0, 4);
+    blackKing = k;
+    board[0][4] = k;
+    let index = 1;
+    blackPieces[0] = k;
 
+    // N1
+    for (let i = 0; i < 4; i++) {
+        const n = new EvoKnight('black', i, 0);
+        const x = new EvoKnight('black', i, 3);
+        board[i][0] = n;
+        board[i][3] = x;
+        blackPieces[index] = n;
+        blackPieces[index + 1] = x;
+        index += 2;
+    }
+    const n = new EvoKnight('black', 1, 1);
+    const n1 = new EvoKnight('black', 2, 2);
+    board[1][1] = n;
+    board[2][2] = n1;
+    blackPieces[index] = n;
+    blackPieces[index + 1] = n1;
+    index += 2;
+
+    // N2
+    const n4 = new EvoKnight('black', 0, 7);
+    blackPieces[index] = n4;
+    board[0][7] = n4;
+    for (let i = 1; i < 4; i++) {
+        const n = new EvoKnight('black', i, 4);
+        const x = new EvoKnight('black', i, 7);
+        board[i][4] = n;
+        board[i][7] = x;
+        blackPieces[index] = n;
+        blackPieces[index + 1] = x;
+        index += 2;
+    }
+    const n2 = new EvoKnight('black', 1, 5);
+    const n3 = new EvoKnight('black', 2, 6);
+    board[1][5] = n2;
+    board[2][6] = n3;
+    blackPieces[index] = n2;
+    blackPieces[index + 1] = n3;
+
+
+    // White pieces
     board[7][0] = new Rook('white', 7, 0);
     board[7][7] = new Rook('white', 7, 7);
     board[7][1] = new Knight('white', 7, 1);
@@ -96,9 +132,10 @@ function initializeBoard() {
     board[7][2] = new Bishop('white', 7, 2);
     board[7][5] = new Bishop('white', 7, 5);
     board[7][3] = new Queen('white', 7, 3);
-    board[7][4] = new King('white', 7, 4);
+    whiteKing = new King('white', 7, 4);
+    board[7][4] = whiteKing;
     for (let i = 0; i < 8; i++) {
-        board[6][i] = new Pawn('white', 6, i);
+        board[6][i] = new EvoPawn('white', 6, i);
     }
 }
 
@@ -127,6 +164,7 @@ function drawPieces() {
                 ctx.fillStyle = 'rgba(255, 255, 0, 0.4)'; // Highlight
                 ctx.fillRect(col * tileLen, row * tileLen, tileLen, tileLen);
             }
+
         }
     }
 }
@@ -149,9 +187,20 @@ function redraw() {
     drawMoves(); // Top layer
 }
 
-function handleClick(row, col) {
-    if (activePromotion) {
-        return;
+async function handleClick(row, col) {
+
+    if (activePromotion || blackMove || row === col === null) {
+        if (turn !== 'black') {
+            return;
+        }
+        else {
+            turn = "white";
+            await blackBot();
+            blackMove = false;
+            redraw();
+            return;
+        }
+
     }
     const clickedPiece = board[row][col];
     const originalTurn = turn; // Used later, niche but necessary
@@ -173,9 +222,13 @@ function handleClick(row, col) {
 
                         // Update state
                         lastMovedPiece = movedPiece;
-                        turn = (turn === "white") ? "black" : "white";
                         moves = [];
                         selectedTile = null;
+
+                        if (!blackMove) {
+                            turn = 'black';
+                            blackMove = true;
+                        }
 
                         redraw();
 
@@ -187,6 +240,8 @@ function handleClick(row, col) {
                                 restartGame();
                             });
                         }
+
+                        handleClick(null, null);
                     });
 
                     return; // prevents further logic from running until promotion completes
@@ -199,9 +254,15 @@ function handleClick(row, col) {
             }
             lastMovedPiece = movedPiece; // Update LMP
             if (turn === "white") {
-                turn = "black";
+                moves = []; // Clear possible moves
+                selectedTile = null; // Clear selection
+                redraw();
+                blackMove = true;
+                await blackBot();
+                blackMove = false;
             }
             else {
+                console.log('Move error');
                 turn = "white";
             }
             // Switch turns
@@ -278,6 +339,138 @@ function triggerReset(winner) {
     overlay.style.display = 'flex';
 }
 
+async function blackBot() {
+
+    let gameStatus = gameOver(board);
+    if (gameStatus != null) {
+        triggerReset(gameStatus);
+        document.getElementById('gameOverOverlay').addEventListener('click', () => {
+            document.getElementById('gameOverOverlay').style.display = 'none';
+            restartGame();
+        });
+        return; // shouldn't get here.
+    }
+
+    // Remove taken/removed pieces from list
+
+    for (let i = blackPieces.length - 1; i >= 0; i--) {
+        let piece = blackPieces[i];
+
+        if (board[piece.rank][piece.file] !== piece) {
+            blackPieces.splice(i, 1);
+        }
+    }
+
+    await delay(500);
+
+    let opp = attackedPiece(board, whiteKing);
+
+    if (opp) {
+        // Capture white king
+        selectedTile = { row: opp.rank, col: opp.file };
+        redraw();
+        await delay(300);
+        selectedTile = null;
+        opp.movePiece(board, { row: whiteKing.rank, col: whiteKing.file }, { row: opp.rank, col: opp.file });
+        return;
+    }
+    let opp2 = attackedPiece(board, blackKing);
+    if (opp2) {
+        // Black king in check
+        let ms = blackKing.getMoves(board, blackKing.rank, blackKing.file);
+        for (let i = 0; i < ms.length; i++) {
+            const m = ms[i];
+
+            if (!(attackedPiece(board, null, m.row, m.col, 'white'))) {
+                // Safe square to move
+                selectedTile = { row: blackKing.rank, col: blackKing.file };
+                redraw();
+                await delay(300);
+                selectedTile = null;
+                blackKing.movePiece(board, m, { row: blackKing.rank, col: blackKing.file });
+                return;
+            }
+
+        }
+    }
+
+    for (let piece of blackPieces) {
+        const c = piece.captures(board, piece.rank, piece.file); // Capture list
+        if (c.length > 0) {
+            // Has a capturable target
+            const pr = piece.rank;
+            const pc = piece.file;
+
+            // Highlight moved piece, wait, unhighlight
+            selectedTile = { row: pr, col: pc };
+            redraw();
+
+            await delay(300);
+
+            selectedTile = null;
+            redraw();
+
+            const randomCapture = c[Math.floor(Math.random() * c.length)];
+            const rCr = randomCapture.row;
+            const rCc = randomCapture.col;
+            const to = { row: rCr, col: rCc };
+
+            const from = { row: pr, col: pc };
+            let output = null;
+
+            output = piece.movePiece(board, to, from, randomCapture);
+
+            board = output;
+            lastMovedPiece = piece;
+            return;
+        }
+
+    }
+
+    // Left to play a non capture/out-of-check move
+    let shmoves = []
+    let rP = null;
+    let iterations = 0;
+    while (shmoves.length <= 0) {
+        rP = blackPieces[Math.floor(Math.random() * blackPieces.length)]; // randomPiece
+        shmoves = rP.getMoves(board, rP.rank, rP.file); // all moves of randomPiece
+        iterations++;
+        if (iterations >= 1000) {
+            // Pass move, no possible moves, avoid infinite loop;
+            lastMovedPiece = null;
+            return;
+        }
+    }
+    let rM = shmoves[Math.floor(Math.random() * shmoves.length)]; // randomMove
+
+    const pr = rP.rank; // Piece row
+    const pc = rP.file; // Piece col
+
+    // Highlight moved piece, wait, unhighlight
+    selectedTile = { row: pr, col: pc };
+    redraw();
+
+    await delay(300);
+
+    selectedTile = null;
+    redraw();
+
+    const from = { row: pr, col: pc };
+    const mr = rM.row; // Move row
+    const mc = rM.col; // Move col
+    const to = { row: mr, col: mc };
+    let output = rP.movePiece(board, to, from, rM);
+
+    board = output;
+
+    lastMovedPiece = rP;
+    return;
+
+}
+
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 export function setup() {
     initializeBoard();
@@ -286,6 +479,12 @@ export function setup() {
 }
 
 export function startGame() {
+
+    document.getElementById("levelMessage").textContent =
+        `Evo Knight: Active Ability: Magic Armor.    
+        Cannot be target or captured from distant opposing pieces.   
+        Range: Manhatten Distance > 3 -> (|x1 - x2| + |y1 - y2|).` ;
+
     canvas.onclick = null; // reset
     canvas.onclick = (e) => {
 
@@ -318,3 +517,33 @@ canvas.addEventListener('click', (e) => {
 initializeBoard();
 drawBoard();
 drawPieces();
+
+function attackedPiece(board, piece, row = null, col = null, color = null) {
+
+    let r, c, otherColor = null;
+    if (piece) {
+        r = piece.rank;
+        c = piece.file;
+        otherColor = piece.color === 'white' ? 'black' : 'white';
+    }
+    else {
+        r = row;
+        c = col;
+        otherColor = color;
+    }
+    for (let ro = 0; ro < board.length; ro++) {
+        for (let co = 0; co < board[0].length; co++) {
+            const obj = board[ro][co];
+
+            if (obj instanceof Piece && obj.color === otherColor) {
+                const checkedTiles = {};
+                checkedTiles[`${r},${c}`] = true;
+                if (obj.isPossibleMove(board, obj.rank, obj.file, checkedTiles)) {
+                    return obj;
+                }
+            }
+        }
+    }
+
+    return null;
+}

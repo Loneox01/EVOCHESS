@@ -59,6 +59,7 @@ export class Knight extends Piece {
     }
 
     isPossibleMove(board, row, col, targets) {
+
         // Same as getMoves, with push replaced with conditional returns
         const deltas = [
             [-2, -1], [-2, 1],
@@ -71,7 +72,7 @@ export class Knight extends Piece {
             const r = row + dr;
             const c = col + dc;
 
-            if (inBounds(r, c) && (board[r][c] === null || board[r][c].color === this.color)) {
+            if (inBounds(r, c)) {
                 if (`${r},${c}` in targets) {
                     return true;
                 }

@@ -1,4 +1,7 @@
 import { Piece } from '../Piece.js';
+import { EvoKnight } from '../KnightFiles/EvoKnight.js';
+import { King } from '../KingFiles/King.js';
+
 
 export class Rook extends Piece {
     constructor(color, rank, file) {
@@ -30,7 +33,9 @@ export class Rook extends Piece {
                     moves.push({ row: r, col: c });
                 } else {
                     if (target.color !== this.color) {
-                        moves.push({ row: r, col: c });
+                        if (!((Math.abs(row - r) + Math.abs(col - c) > 3) && (target instanceof EvoKnight))) {
+                            moves.push({ row: r, col: c });
+                        }
                     }
                     break; // stop on first piece, whether captured or blocked
                 }
@@ -61,7 +66,9 @@ export class Rook extends Piece {
                     // do nothing
                 } else {
                     if (target.color !== this.color) {
-                        moves.push({ row: r, col: c });
+                        if (!((Math.abs(row - r) + Math.abs(col - c) > 3) && (target instanceof EvoKnight))) {
+                            moves.push({ row: r, col: c });
+                        }
                     }
                     break; // stop on first piece, whether captured or blocked
                 }
@@ -91,18 +98,26 @@ export class Rook extends Piece {
                     if (`${r},${c}` in targets) {
                         return true;
                     }
-                } else {
-                    if (target.color !== this.color) {
-                        if (`${r},${c}` in targets) {
-                            return true;
-                        }
+
+                } else if (target.color != this.color && target instanceof King) {
+                    if (`${r},${c}` in targets || `${r + dr},${c + dc}` in targets) {
+                        return true;
                     }
                     break; // stop on first piece, whether captured or blocked
                 }
+                else if (!((Math.abs(row - r) + Math.abs(col - c) > 3) && (target instanceof EvoKnight) && target.color != this.color)) {
+                    if (`${r},${c}` in targets) {
+                        return true;
+                    }
+                    break; // stop on first piece, whether captured or blocked
+                }
+
                 r += dr;
                 c += dc;
             }
+
         }
+
         return false;
     }
 

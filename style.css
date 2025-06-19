@@ -140,3 +140,20 @@ canvas {
 #altMenu button:hover {
     background: #771d1d;
 }
+
+#levelMessage {
+    width: 100%;
+    text-align: center;
+    font-size: 16px;
+    margin-top: 0px;
+    margin-bottom: 10px;
+    color: #1d1d1d;
+    white-space: pre-line;
+    font-family: "Courier New", Courier, monospace;
+}
+
+#page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}

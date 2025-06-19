@@ -48,12 +48,12 @@ export class King extends Piece {
                     // adjacent square in casteling target direction
                     // Allow casteling INTO check, not IN or THROUGH
                     // Generational family reunion of if statements
+                    const otherColor = this.color === 'white' ? 'black' : 'white';
                     for (let r = 0; r < board.length; r++) {
                         for (let c = 0; c < board[0].length; c++) {
                             const obj = board[r][c];
-                            const otherColor = this.color === 'white' ? 'black' : 'white';
                             if (obj instanceof Piece && obj.color === otherColor) {
-                                const checkedTiles = {}
+                                const checkedTiles = {};
                                 checkedTiles[`${row},${col}`] = true;
                                 checkedTiles[`${row},${col + 1}`] = true;
                                 if (obj.isPossibleMove(board, r, c, checkedTiles)) {
@@ -150,10 +150,9 @@ export class King extends Piece {
                     if (`${r},${c}` in targets) {
                         return true;
                     }
-                } else if (target.color !== this.color) {
-                    if (`${r},${c}` in targets) {
-                        return true;
-                    }
+                }
+                if (`${r},${c}` in targets) {
+                    return true;
                 }
 
             }
