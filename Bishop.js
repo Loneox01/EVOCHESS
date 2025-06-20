@@ -1,4 +1,3 @@
-import { King } from '../KingFiles/King.js';
 import { EvoKnight } from '../KnightFiles/EvoKnight.js';
 import { Piece } from '../Piece.js';
 
@@ -78,7 +77,7 @@ export class Bishop extends Piece {
         return moves;
     }
 
-    isPossibleMove(board, row, col, targets) {
+    isPossibleMove(board, row, col, targets, piece) {
         // Going to be the same as getMoves but all .push replaced with conditions
 
         const directions = [
@@ -99,13 +98,13 @@ export class Bishop extends Piece {
                         return true;
                     }
 
-                } else if (target.color != this.color && target instanceof King) {
+                } else if (target.color != this.color && target === piece) {
                     if (`${r},${c}` in targets || `${r + dr},${c + dc}` in targets) {
                         return true;
                     }
                     break; // stop on first piece, whether captured or blocked
                 }
-                else if (!((Math.abs(row - r) + Math.abs(col - c) > 3) && (target instanceof EvoKnight) && target.color != this.color)) {
+                else {
                     if (`${r},${c}` in targets) {
                         return true;
                     }

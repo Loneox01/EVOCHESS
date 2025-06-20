@@ -51,21 +51,21 @@ function showPromotionMenu(onSelectCallback) {
     };
 }
 
-function createPromotedPiece(choice, color) {
+function createPromotedPiece(choice, color, rank, file) {
     if (choice === 'Queen') {
-        return new Queen(color);
+        return new Queen(color, rank, file);
     }
     if (choice === 'Knight') {
-        return new Knight(color);
+        return new Knight(color, rank, file);
     }
     if (choice === 'Bishop') {
-        return new Bishop(color);
+        return new Bishop(color, rank, file);
     }
     if (choice === 'Rook') {
-        return new Rook(color);
+        return new Rook(color, rank, file);
     }
     if (choice === 'King') {
-        return new King(color);
+        return new King(color, rank, file);
     }
 
     return null;
@@ -191,7 +191,7 @@ async function handleClick(row, col) {
                 let output = movedPiece.movePiece(board, to, from, move);
                 if (output === "PROMOTE") {
                     showPromotionMenu(choice => {
-                        board[to.row][to.col] = createPromotedPiece(choice, movedPiece.color);
+                        board[to.row][to.col] = createPromotedPiece(choice, movedPiece.color, to.row, to.col);
                         board[from.row][from.col] = null;
 
                         // Update state

@@ -49,7 +49,7 @@ export class Queen extends Piece {
         return moves;
     }
 
-    isPossibleMove(board, row, col, targets) {
+    isPossibleMove(board, row, col, targets, piece) {
         const directions = [
             [1, 1],   // down-right
             [-1, 1],  // up-right
@@ -72,13 +72,13 @@ export class Queen extends Piece {
                         return true;
                     }
 
-                } else if (target.color != this.color && target instanceof King) {
+                } else if (target.color != this.color && target == piece) {
                     if (`${r},${c}` in targets || `${r + dr},${c + dc}` in targets) {
                         return true;
                     }
                     break; // stop on first piece, whether captured or blocked
                 }
-                else if (!((Math.abs(row - r) + Math.abs(col - c) > 3) && (target instanceof EvoKnight) && target.color != this.color)) {
+                else {
                     if (`${r},${c}` in targets) {
                         return true;
                     }

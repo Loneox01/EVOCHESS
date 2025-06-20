@@ -7,6 +7,7 @@ import { Pawn } from '../Pieces/PawnFiles/Pawn.js';
 import { EvoPawn } from '../Pieces/PawnFiles/EvoPawn.js';
 import { Piece } from '../Pieces/Piece.js';
 import { EvoKnight } from '../Pieces/KnightFiles/EvoKnight.js';
+import { EvoBishop } from '../Pieces/BishopFiles/EvoBishop.js';
 
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
@@ -14,7 +15,7 @@ const tileLen = canvas.width / 8;
 
 const LIGHT = '#f0d9b5'; // Light tileLens
 const DARK = '#b58863'; // Dark tileLens
-const blackPieces = Array(19).fill(null);
+const blackPieces = [];
 
 let blackMove = false;
 let activePromotion = false; // True if promotion menu is present
@@ -82,53 +83,34 @@ function initializeBoard() {
     const k = new King('black', 0, 4);
     blackKing = k;
     board[0][4] = k;
-    let index = 1;
-    blackPieces[0] = k;
+    blackPieces.push(k);
 
-    // N1
+    // X1
     for (let i = 0; i < 4; i++) {
-        const n = new EvoKnight('black', i, 0);
-        const x = new EvoKnight('black', i, 3);
-        board[i][0] = n;
-        board[i][3] = x;
-        blackPieces[index] = n;
-        blackPieces[index + 1] = x;
-        index += 2;
+        const n = new EvoBishop('black', i, 0 + i);
+        const x = new EvoBishop('black', i, 3 - i);
+        board[i][0 + i] = n;
+        board[i][3 - i] = x;
+        blackPieces.push(n);
+        blackPieces.push(x);
     }
-    const n = new EvoKnight('black', 1, 1);
-    const n1 = new EvoKnight('black', 2, 2);
-    board[1][1] = n;
-    board[2][2] = n1;
-    blackPieces[index] = n;
-    blackPieces[index + 1] = n1;
-    index += 2;
-
-    // N2
-    const n4 = new EvoKnight('black', 0, 7);
-    blackPieces[index] = n4;
-    board[0][7] = n4;
+    let x = new EvoBishop('black', 0, 7);
+    board[0][7] = x;
+    blackPieces.push(x);
     for (let i = 1; i < 4; i++) {
-        const n = new EvoKnight('black', i, 4);
-        const x = new EvoKnight('black', i, 7);
-        board[i][4] = n;
-        board[i][7] = x;
-        blackPieces[index] = n;
-        blackPieces[index + 1] = x;
-        index += 2;
+        const n = new EvoBishop('black', i, 4 + i);
+        const x = new EvoBishop('black', i, 7 - i);
+        board[i][4 + i] = n;
+        board[i][7 - i] = x;
+        blackPieces.push(n);
+        blackPieces.push(x);
     }
-    const n2 = new EvoKnight('black', 1, 5);
-    const n3 = new EvoKnight('black', 2, 6);
-    board[1][5] = n2;
-    board[2][6] = n3;
-    blackPieces[index] = n2;
-    blackPieces[index + 1] = n3;
-
 
     // White pieces
     board[7][0] = new Rook('white', 7, 0);
     board[7][7] = new Rook('white', 7, 7);
-    board[7][1] = new Knight('white', 7, 1);
-    board[7][6] = new Knight('white', 7, 6);
+    board[7][1] = new EvoKnight('white', 7, 1);
+    board[7][6] = new EvoKnight('white', 7, 6);
     board[7][2] = new Bishop('white', 7, 2);
     board[7][5] = new Bishop('white', 7, 5);
     board[7][3] = new Queen('white', 7, 3);
@@ -137,6 +119,10 @@ function initializeBoard() {
     for (let i = 0; i < 8; i++) {
         board[6][i] = new EvoPawn('white', 6, i);
     }
+
+    board[5][2] = new EvoPawn('white', 5, 2);
+    board[5][4] = new EvoPawn('white', 5, 4);
+    board[5][6] = new EvoPawn('white', 5, 6);
 }
 
 function drawPieces() {
@@ -363,9 +349,13 @@ async function blackBot() {
 
     await delay(500);
 
-    let opp = attackedPiece(board, whiteKing);
+    let opps = attackedPiece(board, whiteKing);
+    let opp = null;
+    if (opps) {
+        opp = opps[0];
+    }
 
-    if (opp) {
+    if (opps) {
         // Capture white king
         selectedTile = { row: opp.rank, col: opp.file };
         redraw();
@@ -374,9 +364,30 @@ async function blackBot() {
         opp.movePiece(board, { row: whiteKing.rank, col: whiteKing.file }, { row: opp.rank, col: opp.file });
         return;
     }
+
     let opp2 = attackedPiece(board, blackKing);
     if (opp2) {
         // Black king in check
+        if (opp2.length === 1) {
+            let theOpp = opp2[0];
+            for (let i = 0; i < blackPieces.length; i++) {
+                let bp = blackPieces[i];
+                if (bp === blackKing) {
+                    continue;
+                }
+                const t = {};
+
+                t[`${theOpp.rank},${theOpp.file}`] = true;
+                if (bp.isPossibleMove(board, bp.rank, bp.file, t)) {
+                    selectedTile = { row: bp.rank, col: bp.file };
+                    redraw();
+                    await delay(300);
+                    bp.movePiece(board, { row: theOpp.rank, col: theOpp.file }, selectedTile);
+                    selectedTile = null;
+                    return;
+                }
+            }
+        }
         let ms = blackKing.getMoves(board, blackKing.rank, blackKing.file);
         for (let i = 0; i < ms.length; i++) {
             const m = ms[i];
@@ -394,7 +405,10 @@ async function blackBot() {
         }
     }
 
-    for (let piece of blackPieces) {
+    const randomOrder = shuffledIndices(blackPieces.length - 1);
+
+    for (let index of randomOrder) {
+        const piece = blackPieces[index];
         const c = piece.captures(board, piece.rank, piece.file); // Capture list
         if (c.length > 0) {
             // Has a capturable target
@@ -428,18 +442,20 @@ async function blackBot() {
     }
 
     // Left to play a non capture/out-of-check move
-    let shmoves = []
+
+    let rO2 = shuffledIndices(blackPieces.length - 1); // randomOrder2
     let rP = null;
-    let iterations = 0;
-    while (shmoves.length <= 0) {
-        rP = blackPieces[Math.floor(Math.random() * blackPieces.length)]; // randomPiece
+    let shmoves = [];
+    for (let index of rO2) {
+        rP = blackPieces[index];
         shmoves = rP.getMoves(board, rP.rank, rP.file); // all moves of randomPiece
-        iterations++;
-        if (iterations >= 1000) {
-            // Pass move, no possible moves, avoid infinite loop;
-            lastMovedPiece = null;
-            return;
+        if (shmoves.length > 0) {
+            break;
         }
+    }
+    if (shmoves.length <= 0) {
+        lastMovedPiece = null;
+        return;
     }
     let rM = shmoves[Math.floor(Math.random() * shmoves.length)]; // randomMove
 
@@ -481,9 +497,10 @@ export function setup() {
 export function startGame() {
 
     document.getElementById("levelMessage").textContent =
-        `Evo Knight: Passive Ability: Magic Armor.    
-        Cannot be target or captured from distant opposing pieces.   
-        Range: Manhatten Distance > 3 -> (|x1 - x2| + |y1 - y2|).` ;
+        `Evo Bishop: Active Ability: Ricochet.    
+        Scope is extended to bounce 90 degrees on walls.   
+        After capturing a piece in the extended scope,  
+        this piece transforms to Bishop.` ;
 
     canvas.onclick = null; // reset
     canvas.onclick = (e) => {
@@ -514,11 +531,9 @@ canvas.addEventListener('click', (e) => {
     handleClick(row, col);
 });
 
-initializeBoard();
-drawBoard();
-drawPieces();
-
 function attackedPiece(board, piece, row = null, col = null, color = null) {
+
+    let opps = []
 
     let r, c, otherColor = null;
     if (piece) {
@@ -539,11 +554,32 @@ function attackedPiece(board, piece, row = null, col = null, color = null) {
                 const checkedTiles = {};
                 checkedTiles[`${r},${c}`] = true;
                 if (obj.isPossibleMove(board, obj.rank, obj.file, checkedTiles)) {
-                    return obj;
+                    opps.push(obj);
                 }
             }
         }
     }
 
+    if (opps.length > 0) {
+        return opps;
+    }
+
     return null;
 }
+
+function shuffledIndices(n) {
+    // randomizes indices
+    const indices = Array.from({ length: n + 1 }, (_, i) => i); // [0, 1, 2, ..., n]
+
+    for (let i = indices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [indices[i], indices[j]] = [indices[j], indices[i]]; // swap
+    }
+
+    return indices;
+}
+
+
+initializeBoard();
+drawBoard();
+drawPieces();

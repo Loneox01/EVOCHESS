@@ -1,8 +1,8 @@
 export class Piece {
     constructor(color, rank, file) {
         this.color = color;
-        this.rank = rank; // starting row
-        this.file = file; // starting col
+        this.rank = rank; // current row
+        this.file = file; // current col
         this.evod = false;
     }
 
@@ -15,7 +15,7 @@ export class Piece {
         return [];
     }
 
-    isPossibleMove(board, row, col, targets) {
+    isPossibleMove(board, row, col, targets, piece) {
         // ONLY USE TO CHECK FOR KING MOVES
         return false;
     }
@@ -34,4 +34,8 @@ export class Piece {
     captures(board, row, col, lmp = null) {
         return []
     }
+}
+
+function inBounds(row, col) {
+    return row >= 0 && row < 8 && col >= 0 && col < 8;
 }

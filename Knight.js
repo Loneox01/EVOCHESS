@@ -58,7 +58,7 @@ export class Knight extends Piece {
         return moves;
     }
 
-    isPossibleMove(board, row, col, targets) {
+    isPossibleMove(board, row, col, targets, piece) {
 
         // Same as getMoves, with push replaced with conditional returns
         const deltas = [

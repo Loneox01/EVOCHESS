@@ -56,7 +56,7 @@ export class King extends Piece {
                                 const checkedTiles = {};
                                 checkedTiles[`${row},${col}`] = true;
                                 checkedTiles[`${row},${col + 1}`] = true;
-                                if (obj.isPossibleMove(board, r, c, checkedTiles)) {
+                                if (obj.isPossibleMove(board, r, c, checkedTiles, this)) {
                                     castleBlocked = true;
                                 }
                             }
@@ -80,7 +80,7 @@ export class King extends Piece {
                                 const checkedTiles = {}
                                 checkedTiles[`${row},${col}`] = true;
                                 checkedTiles[`${row},${col - 1}`] = true;
-                                if (obj.isPossibleMove(board, r, c, checkedTiles)) {
+                                if (obj.isPossibleMove(board, r, c, checkedTiles, this)) {
                                     castleBlocked = true;
                                 }
                             }
@@ -128,7 +128,7 @@ export class King extends Piece {
         return moves;
     }
 
-    isPossibleMove(board, row, col, targets) {
+    isPossibleMove(board, row, col, targets, piece = null) {
         const directions = [
             [1, 1],   // down-right
             [-1, 1],  // up-right

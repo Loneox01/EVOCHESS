@@ -181,7 +181,7 @@ export class Pawn extends Piece {
         return moves;
     }
 
-    isPossibleMove(board, row, col, targets) {
+    isPossibleMove(board, row, col, targets, piece = null) {
         if (this.color === 'white') {
             // Capturing
             if (`${row - 1},${col + 1}` in targets) {

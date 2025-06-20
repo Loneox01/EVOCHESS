@@ -4,6 +4,9 @@ import { Rook } from '../Pieces/RookFiles/Rook.js';
 import { Queen } from '../Pieces/QueenFiles/Queen.js';
 import { King } from '../Pieces/KingFiles/King.js';
 import { Pawn } from '../Pieces/PawnFiles/Pawn.js';
+import { EvoPawn } from '../Pieces/PawnFiles/EvoPawn.js';
+import { EvoKnight } from '../Pieces/KnightFiles/EvoKnight.js';
+import { EvoBishop } from '../Pieces/BishopFiles/EvoBishop.js';
 
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
@@ -12,8 +15,8 @@ const tileLen = canvas.width / 8;
 const LIGHT = '#f0d9b5'; // Light tileLens
 const DARK = '#b58863'; // Dark tileLens
 
+let activePromotion = false; // True if promotion menu is present
 let turn = "white"; // Turn tracker, either "white" or "black"
-let activePromotion = false;
 
 // Initial setup of the board
 let board = Array(8).fill(null).map(() => Array(8).fill(null));
@@ -72,28 +75,21 @@ function initializeBoard() {
     // Default board
     board = Array(8).fill(null).map(() => Array(8).fill(null));
 
-    board[0][0] = new Rook('black');
-    board[0][7] = new Rook('black');
-    board[0][1] = new Knight('black');
-    board[0][6] = new Knight('black');
-    board[0][2] = new Bishop('black');
-    board[0][5] = new Bishop('black');
-    board[0][3] = new Queen('black', 0, 3);
     board[0][4] = new King('black', 0, 4);
-    for (let i = 0; i < 8; i++) {
-        board[1][i] = new Pawn('black');
-    }
+    board[0][3] = new EvoBishop('black', 0, 3);
+    board[1][3] = new EvoBishop('black', 1, 3);
 
-    board[7][0] = new Rook('white');
-    board[7][7] = new Rook('white');
-    board[7][1] = new Knight('white');
-    board[7][6] = new Knight('white');
-    board[7][2] = new Bishop('white');
-    board[7][5] = new Bishop('white');
+
+    board[7][0] = new Rook('white', 7, 0);
+    board[7][7] = new Rook('white', 7, 7);
+    board[7][1] = new EvoKnight('white', 7, 1);
+    board[7][6] = new EvoKnight('white', 7, 6);
+    board[7][2] = new EvoBishop('white', 7, 2);
+    board[7][5] = new EvoBishop('white', 7, 5);
     board[7][3] = new Queen('white', 7, 3);
     board[7][4] = new King('white', 7, 4);
     for (let i = 0; i < 8; i++) {
-        board[6][i] = new Pawn('white');
+        board[6][i] = new EvoPawn('white', 6, i);
     }
 }
 
@@ -111,6 +107,11 @@ function drawPieces() {
                 const y = row * tileLen + tileLen / 2; // y Location
                 ctx.fillStyle = (piece.color === 'white' ? 'white' : 'black');
                 ctx.fillText(symbol, x, y);
+
+                if (piece.evod) {
+                    ctx.fillStyle = 'rgba(90, 0, 150, 0.25)'; // Highlight
+                    ctx.fillRect(col * tileLen, row * tileLen, tileLen, tileLen);
+                }
             }
 
             if (selectedTile && selectedTile.row === row && selectedTile.col === col) {
@@ -268,6 +269,7 @@ function triggerReset(winner) {
     overlay.style.display = 'flex';
 }
 
+
 export function setup() {
     initializeBoard();
     drawBoard();
@@ -275,10 +277,9 @@ export function setup() {
 }
 
 export function startGame() {
-
-    const canvas = document.getElementById("board");
     canvas.onclick = null; // reset
     canvas.onclick = (e) => {
+
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
@@ -290,18 +291,11 @@ export function startGame() {
     }; // set
 
     restartGame();
-
-    return {
-        redraw,
-        createPromotedPiece
-    }; // For loader.js
 }
-
-
 
 canvas.addEventListener('click', (e) => {
 
-    // add
+    // interactive
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
