@@ -207,6 +207,9 @@ export class Pawn extends Piece {
     }
 
     movePiece(board, to, from, move = null) {
+        this.rank = to.row;
+        this.file = to.col;
+
         if (Math.abs(from.row - to.row) >= 2) {
             this.homeSquare = false;
             this.moved2 = true;

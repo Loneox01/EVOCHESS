@@ -122,12 +122,16 @@ export class Rook extends Piece {
     }
 
     movePiece(board, to, from, move = null) {
+        this.rank = to.row;
+        this.file = to.col;
         board[to.row][to.col] = this;
         board[from.row][from.col] = null;
 
         if (this.hasMoved === false) {
             this.hasMoved = true;
         }
+
+
 
         return board;
     }

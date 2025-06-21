@@ -75,22 +75,32 @@ function initializeBoard() {
     // Default board
     board = Array(8).fill(null).map(() => Array(8).fill(null));
 
+    for (let i = 1; i < 7; i++) {
+        board[0][i] = new EvoBishop('black', 0, i);
+    }
     board[0][4] = new King('black', 0, 4);
-    board[0][3] = new EvoBishop('black', 0, 3);
-    board[1][3] = new EvoBishop('black', 1, 3);
+    for (let i = 2; i < 6; i++) {
+        board[1][i] = new EvoBishop('black', 1, i);
+    }
+    for (let i = 3; i < 5; i++) {
+        board[2][i] = new EvoBishop('black', 2, i);
+    }
 
 
     board[7][0] = new Rook('white', 7, 0);
     board[7][7] = new Rook('white', 7, 7);
     board[7][1] = new EvoKnight('white', 7, 1);
     board[7][6] = new EvoKnight('white', 7, 6);
-    board[7][2] = new EvoBishop('white', 7, 2);
-    board[7][5] = new EvoBishop('white', 7, 5);
+    board[7][2] = new Bishop('white', 7, 2);
+    board[7][5] = new Bishop('white', 7, 5);
     board[7][3] = new Queen('white', 7, 3);
     board[7][4] = new King('white', 7, 4);
     for (let i = 0; i < 8; i++) {
         board[6][i] = new EvoPawn('white', 6, i);
     }
+    board[5][2] = new EvoPawn('white', 5, 2);
+    board[5][4] = new EvoPawn('white', 5, 4);
+    board[5][6] = new EvoPawn('white', 5, 6);
 }
 
 function drawPieces() {

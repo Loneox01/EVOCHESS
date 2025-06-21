@@ -16,6 +16,8 @@ const LIGHT = '#f0d9b5'; // Light tileLens
 const DARK = '#b58863'; // Dark tileLens
 const blackPieces = Array(19).fill(null);
 
+let gameFinished = false;
+
 let blackMove = false;
 let activePromotion = false; // True if promotion menu is present
 let turn = "white"; // Turn tracker, either "white" or "black"
@@ -188,6 +190,9 @@ function redraw() {
 }
 
 async function handleClick(row, col) {
+    if (gameFinished) {
+        return;
+    }
 
     if (activePromotion || blackMove || row === col === null) {
         if (turn !== 'black') {
@@ -234,6 +239,7 @@ async function handleClick(row, col) {
 
                         let gameStatus = gameOver(board);
                         if (gameStatus != null) {
+                            gameFinished = true;
                             triggerReset(gameStatus);
                             document.getElementById('gameOverOverlay').addEventListener('click', () => {
                                 document.getElementById('gameOverOverlay').style.display = 'none';
@@ -251,6 +257,15 @@ async function handleClick(row, col) {
             }
             else {
                 board = movedPiece.movePiece(board, to, from);
+                let gameStatus = gameOver(board);
+                if (gameStatus != null) {
+                    gameFinished = true;
+                    triggerReset(gameStatus);
+                    document.getElementById('gameOverOverlay').addEventListener('click', () => {
+                        document.getElementById('gameOverOverlay').style.display = 'none';
+                        restartGame();
+                    });
+                }
             }
             lastMovedPiece = movedPiece; // Update LMP
             if (turn === "white") {
@@ -286,6 +301,7 @@ async function handleClick(row, col) {
 
     let gameStatus = gameOver(board);
     if (gameStatus != null) {
+        gameFinished = true;
         triggerReset(gameStatus);
         document.getElementById('gameOverOverlay').addEventListener('click', () => {
             document.getElementById('gameOverOverlay').style.display = 'none';
@@ -329,6 +345,7 @@ function restartGame() {
     turn = "white";
     lastMovedPiece = null;
     redraw();
+    gameFinished = false;
 }
 
 function triggerReset(winner) {
@@ -343,6 +360,7 @@ async function blackBot() {
 
     let gameStatus = gameOver(board);
     if (gameStatus != null) {
+        gameFinished = true;
         triggerReset(gameStatus);
         document.getElementById('gameOverOverlay').addEventListener('click', () => {
             document.getElementById('gameOverOverlay').style.display = 'none';
