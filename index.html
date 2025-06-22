@@ -3,29 +3,45 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>Web Chess</title>
+    <title>EvoChess</title>
     <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
     <div id="page">
         <div id="levelMessage"></div>
+
         <div id="container">
             <div id="menu">
                 <h1>Select PVE</h1>
-
                 <button onclick="loadGame('/Levels/pawnLevel')">Story: P</button>
                 <button onclick="loadGame('/Levels/knightLevel')">Story: N</button>
                 <button onclick="loadGame('/Levels/bishopLevel')">Story: B</button>
+                <button onclick="loadGame('/Levels/rookLevel')" data-evo="true"
+                    data-evo-options="None,Pawn,Knight,Bishop">Story: R</button>
             </div>
 
-            <div id="wrapper">
-                <canvas id="board" width="480" height="480"></canvas>
+            <div id="centerColumn">
+                <div id="wrapper">
+                    <canvas id="board" width="480" height="480"></canvas>
 
-                <!-- Game Over Overlay -->
-                <div id="gameOverOverlay" style="display: none;">
-                    <h1 id="winnerText">Game Over</h1>
-                    <p>Click to play again</p>
+                    <!-- Game Over Overlay -->
+                    <div id="gameOverOverlay" style="display: none;">
+                        <h1 id="winnerText">Game Over</h1>
+                        <p>Click to play again</p>
+                    </div>
+                </div>
+
+                <div id="evoSelection">
+                    <label for="evo1">Choose Evo 1:</label>
+                    <select id="evo1">
+                        <option value="" disabled selected>Select Evo 1</option>
+                    </select>
+
+                    <label for="evo2">Choose Evo 2:</label>
+                    <select id="evo2">
+                        <option value="" disabled selected>Select Evo 2</option>
+                    </select>
                 </div>
             </div>
 
@@ -48,9 +64,64 @@
             <option value="King">King</option>
         </select>
 
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const evo1Select = document.getElementById("evo1");
+                const evo2Select = document.getElementById("evo2");
+                const evoSelectionBox = document.getElementById("evoSelection");
+                const levelMessage = document.getElementById("levelMessage");
+
+                const buttons = document.querySelectorAll("button");
+
+                buttons.forEach(button => {
+                    button.addEventListener("click", () => {
+                        const isPVP = button.closest('#altMenu') !== null;
+                        levelMessage.style.display = isPVP ? "none" : "block";
+
+                        const isEvo = button.dataset.evo === "true";
+
+                        if (isEvo) {
+                            evoSelectionBox.style.display = "block";
+                            const options = button.dataset.evoOptions.split(',');
+
+                            // Populate evo1
+                            evo1Select.innerHTML = `<option value="" disabled selected>Select Evo 1</option>`;
+                            options.forEach(opt => {
+                                const option = document.createElement("option");
+                                option.value = opt;
+                                option.textContent = opt;
+                                evo1Select.appendChild(option);
+                            });
+
+                            // Reset evo2 on change of evo1
+                            evo1Select.onchange = () => {
+                                const selected = evo1Select.value;
+                                evo2Select.innerHTML = `<option value="" disabled selected>Select Evo 2</option>`;
+                                options.forEach(opt => {
+                                    if (opt !== selected || opt === 'None') {
+                                        const option = document.createElement("option");
+                                        option.value = opt;
+                                        option.textContent = opt;
+                                        evo2Select.appendChild(option);
+                                    }
+                                });
+                            };
+
+                            // Clear evo2 initially
+                            evo2Select.innerHTML = `<option value="" disabled selected>Select Evo 2</option>`;
+                        } else {
+                            evoSelectionBox.style.display = "none";
+                            evo1Select.innerHTML = `<option value="" disabled selected>Select Evo 1</option>`;
+                            evo2Select.innerHTML = `<option value="" disabled selected>Select Evo 2</option>`;
+                        }
+                    });
+                });
+            });
+        </script>
+
+
         <script type="module" src="loader.js"></script>
     </div>
 </body>
-
 
 </html>

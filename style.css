@@ -142,6 +142,7 @@ canvas {
 }
 
 #levelMessage {
+    display: none;
     width: 100%;
     text-align: center;
     font-size: 16px;
@@ -156,4 +157,41 @@ canvas {
     display: flex;
     flex-direction: column;
     align-items: center;
+}
+
+#centerColumn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#evoSelection {
+    margin-top: 20px;
+    /* spacing from the board */
+    text-align: center;
+    /* center the dropdowns */
+    display: flex;
+    /* arrange label and select side by side */
+    justify-content: center;
+    /* center the whole block */
+    gap: 20px;
+    /* spacing between dropdowns */
+    align-items: center;
+    flex-wrap: wrap;
+    /* wrap on smaller screens */
+}
+
+#evoSelection label {
+    margin-right: 3px;
+    font-weight: bold;
+    margin-left: 10px;
+    /* label margin-left + select margin-right makes 2x margin
+    down the middle, while centered visually */
+}
+
+#evoSelection select {
+    padding: 5px 10px;
+    font-size: 16px;
+    margin-right: 10px;
+
 }
