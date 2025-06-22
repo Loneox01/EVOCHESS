@@ -5,6 +5,8 @@ export class EvoBishop extends Bishop {
     constructor(color, rank, file) {
         super(color, rank, file);
         this.evod = true;
+        this.isEvoRook = false;
+        this.canPinDiag = true;
     }
 
     getMoves(board, row, col) {
@@ -219,6 +221,27 @@ export class EvoBishop extends Bishop {
                     if (`${r},${c}` in targets || `${r + dr},${c + dc}` in targets) {
                         return true;
                     }
+                    else if (!inBounds(r + dr, c + dc)) {
+                        // account for bounce for King move
+                        if ((r < 0 || r > 7)) {
+                            // row out of bounds, bounce
+                            if (!(c < 0 || c > 7)) {
+                                r -= dr;
+                                c += dc;
+                            }
+                            else {
+                                // corner
+                                break;
+                            }
+                        }
+                        else {
+                            c -= dc;
+                            r += dr;
+                        }
+                        if (`${r},${c}` in targets) {
+                            return true;
+                        }
+                    }
                     break; // stop on first piece, whether captured or blocked
                 }
                 else {
@@ -262,6 +285,8 @@ export class EvoBishop extends Bishop {
     movePiece(board, to, from) {
         const b = new Bishop(this.color, this.rank, this.file);
         const t = {};
+        const victim = board[to.row][to.col];
+
         t[`${to.row},${to.col}`] = true;
         if (!b.isPossibleMove(board, this.rank, this.file, t, null) && (board[to.row][to.col] != null)) {
             // Not a possible regular bishop move, transforms to regular bishop
@@ -273,6 +298,9 @@ export class EvoBishop extends Bishop {
             board[to.row][to.col] = this;
         }
         board[from.row][from.col] = null;
+        if (victim != null && victim.isEvoRook) {
+            board = victim.boom(board);
+        }
 
         this.rank = to.row;
         this.file = to.col;

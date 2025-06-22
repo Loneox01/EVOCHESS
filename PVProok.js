@@ -5,10 +5,10 @@ import { Queen } from '../Pieces/QueenFiles/Queen.js';
 import { King } from '../Pieces/KingFiles/King.js';
 import { Pawn } from '../Pieces/PawnFiles/Pawn.js';
 import { EvoPawn } from '../Pieces/PawnFiles/EvoPawn.js';
-import { Piece } from '../Pieces/Piece.js';
 import { EvoKnight } from '../Pieces/KnightFiles/EvoKnight.js';
 import { EvoBishop } from '../Pieces/BishopFiles/EvoBishop.js';
 import { EvoRook } from '../Pieces/RookFiles/EvoRook.js';
+
 
 
 const canvas = document.getElementById('board');
@@ -17,13 +17,11 @@ const tileLen = canvas.width / 8;
 
 const LIGHT = '#f0d9b5'; // Light tileLens
 const DARK = '#b58863'; // Dark tileLens
-const blackPieces = [];
 
-// Game pausers
-let gameFinished = false;
 let evoSelectionMade = false;
+let evo1 = null;
+let evo2 = null;
 
-let blackMove = false;
 let activePromotion = false; // True if promotion menu is present
 let turn = "white"; // Turn tracker, either "white" or "black"
 
@@ -32,11 +30,6 @@ let board = Array(8).fill(null).map(() => Array(8).fill(null));
 let selectedTile = null;
 let moves = [];
 let lastMovedPiece = null; // For tracking, i.e. the Goated en passant
-let whiteKing = null; // For bot tracking
-let blackKing = null; // Same as above
-
-let evo1 = null;
-let evo2 = null;
 
 function drawBoard() {
     // Base board
@@ -89,24 +82,15 @@ function initializeBoard() {
     // Default board
     board = Array(8).fill(null).map(() => Array(8).fill(null));
 
-    const k = new King('black', 0, 4);
-    blackKing = k;
-    board[0][4] = k;
-    blackPieces.push(k);
+    board[0][4] = new King('black', 0, 4);
 
     for (let i = 0; i < 8; i++) {
         if (i !== 4) {
-            const a = new EvoRook('black', 0, i);
-            board[0][i] = a;
-            blackPieces.push(a);
+            board[0][i] = new EvoRook('black', 0, i);
         }
-        const b = new EvoRook('black', 1, i);
-        board[1][i] = b;
-        blackPieces.push(b);
-        if (3 <= i && i <= 5) {
-            board[2][i] = new EvoRook('black', 2, i);
-        }
+        board[1][i] = new EvoRook('black', 1, i);
     }
+
 
     // White pieces
     board[7][0] = new Rook('white', 7, 0);
@@ -129,8 +113,7 @@ function initializeBoard() {
     }
 
     board[7][3] = new Queen('white', 7, 3);
-    whiteKing = new King('white', 7, 4);
-    board[7][4] = whiteKing;
+    board[7][4] = new King('white', 7, 4);
     if (evo1 === 'Pawn' || evo2 === 'Pawn') {
         for (let i = 0; i < 8; i++) {
             board[6][i] = new EvoPawn('white', 6, i);
@@ -175,7 +158,6 @@ function drawPieces() {
                 ctx.fillStyle = 'rgba(255, 255, 0, 0.4)'; // Highlight
                 ctx.fillRect(col * tileLen, row * tileLen, tileLen, tileLen);
             }
-
         }
     }
 }
@@ -198,24 +180,9 @@ function redraw() {
     drawMoves(); // Top layer
 }
 
-async function handleClick(row, col) {
-
-    if (gameFinished || !evoSelectionMade) {
+function handleClick(row, col) {
+    if (activePromotion || !evoSelectionMade) {
         return;
-    }
-
-    if (activePromotion || blackMove || row === col === null) {
-        if (turn !== 'black') {
-            return;
-        }
-        else {
-            turn = "white";
-            await blackBot();
-            blackMove = false;
-            redraw();
-            return;
-        }
-
     }
     const clickedPiece = board[row][col];
     const originalTurn = turn; // Used later, niche but necessary
@@ -231,38 +198,26 @@ async function handleClick(row, col) {
             if (movedPiece instanceof Pawn) {
                 let output = movedPiece.movePiece(board, to, from, move);
                 if (output === "PROMOTE") {
-
                     showPromotionMenu(choice => {
-                        let victim = board[to.row][to.col];
                         board[to.row][to.col] = createPromotedPiece(choice, movedPiece.color, to.row, to.col);
                         board[from.row][from.col] = null;
-                        if (victim != null && victim.isEvoRook) {
-                            board = victim.boom(board);
-                        }
 
                         // Update state
                         lastMovedPiece = movedPiece;
+                        turn = (turn === "white") ? "black" : "white";
                         moves = [];
                         selectedTile = null;
 
-                        if (!blackMove) {
-                            turn = 'black';
-                            blackMove = true;
-                        }
-                        debugger;
                         redraw();
 
                         let gameStatus = gameOver(board);
                         if (gameStatus != null) {
-                            gameFinished = true;
                             triggerReset(gameStatus);
                             document.getElementById('gameOverOverlay').addEventListener('click', () => {
                                 document.getElementById('gameOverOverlay').style.display = 'none';
                                 restartGame();
                             });
                         }
-
-                        handleClick(null, null);
                     });
 
                     return; // prevents further logic from running until promotion completes
@@ -274,25 +229,10 @@ async function handleClick(row, col) {
                 board = movedPiece.movePiece(board, to, from);
             }
             lastMovedPiece = movedPiece; // Update LMP
-            let gameStatus = gameOver(board);
-            if (gameStatus != null) {
-                gameFinished = true;
-                triggerReset(gameStatus);
-                document.getElementById('gameOverOverlay').addEventListener('click', () => {
-                    document.getElementById('gameOverOverlay').style.display = 'none';
-                    restartGame();
-                });
-            }
             if (turn === "white") {
-                moves = []; // Clear possible moves
-                selectedTile = null; // Clear selection
-                redraw();
-                blackMove = true;
-                await blackBot();
-                blackMove = false;
+                turn = "black";
             }
             else {
-                console.log('Move error');
                 turn = "white";
             }
             // Switch turns
@@ -316,7 +256,6 @@ async function handleClick(row, col) {
 
     let gameStatus = gameOver(board);
     if (gameStatus != null) {
-        gameFinished = true;
         triggerReset(gameStatus);
         document.getElementById('gameOverOverlay').addEventListener('click', () => {
             document.getElementById('gameOverOverlay').style.display = 'none';
@@ -374,7 +313,6 @@ async function restartGame() {
     turn = "white";
     lastMovedPiece = null;
     redraw();
-    gameFinished = false;
 }
 
 function triggerReset(winner) {
@@ -385,213 +323,6 @@ function triggerReset(winner) {
     overlay.style.display = 'flex';
 }
 
-async function blackBot() {
-
-    let gameStatus = gameOver(board);
-    if (gameStatus != null) {
-        gameFinished = true;
-        triggerReset(gameStatus);
-        document.getElementById('gameOverOverlay').addEventListener('click', () => {
-            document.getElementById('gameOverOverlay').style.display = 'none';
-            restartGame();
-        });
-        return; // shouldn't get here.
-    }
-
-    // Remove taken/removed pieces from list
-
-    for (let i = blackPieces.length - 1; i >= 0; i--) {
-        let piece = blackPieces[i];
-
-        if (board[piece.rank][piece.file] !== piece) {
-            blackPieces.splice(i, 1);
-        }
-    }
-
-    await delay(500);
-
-    let opps = attackedPiece(board, whiteKing);
-    let opp = null;
-    if (opps) {
-        opp = opps[0];
-    }
-
-    if (opps) {
-        // Capture white king
-        selectedTile = { row: opp.rank, col: opp.file };
-        redraw();
-        await delay(300);
-        opp.movePiece(board, { row: whiteKing.rank, col: whiteKing.file }, { row: opp.rank, col: opp.file });
-        selectedTile = null;
-        return;
-    }
-
-    let opp2 = attackedPiece(board, blackKing);
-    if (opp2) {
-        // Black king in check
-        if (opp2.length === 1) {
-            // Capture sole attacking piece
-            let theOpp = opp2[0];
-            for (let i = 0; i < blackPieces.length; i++) {
-                let bp = blackPieces[i];
-                if (bp === blackKing || bp.isPinnedPiece(board)) {
-                    continue;
-                }
-                const t = {};
-
-                t[`${theOpp.rank},${theOpp.file}`] = true;
-                if (bp.isPossibleMove(board, bp.rank, bp.file, t, blackKing)) {
-                    selectedTile = { row: bp.rank, col: bp.file };
-                    redraw();
-                    await delay(300);
-                    bp.movePiece(board, { row: theOpp.rank, col: theOpp.file }, selectedTile);
-                    selectedTile = null;
-                    return;
-                }
-            }
-        }
-        let ms = blackKing.getMoves(board, blackKing.rank, blackKing.file);
-        // Move king
-        for (let i = 0; i < ms.length; i++) {
-            const m = ms[i];
-
-            if (!(attackedPiece(board, blackKing, m.row, m.col, 'white'))) {
-                // Safe square to move
-                selectedTile = { row: blackKing.rank, col: blackKing.file };
-                redraw();
-                await delay(300);
-                selectedTile = null;
-                blackKing.movePiece(board, m, { row: blackKing.rank, col: blackKing.file });
-                return;
-            }
-
-        }
-    }
-
-    const randomOrder = shuffledIndices(blackPieces.length - 1);
-
-    for (let index of randomOrder) {
-        const piece = blackPieces[index];
-        debugger;
-        if (piece.isPinnedPiece(board)) {
-            continue;
-        }
-        const c = piece.captures(board, piece.rank, piece.file); // Capture list
-        if (c.length > 0) {
-            // Has a capturable target
-            const pr = piece.rank;
-            const pc = piece.file;
-
-            // Highlight moved piece, wait, unhighlight
-            selectedTile = { row: pr, col: pc };
-            redraw();
-
-            await delay(300);
-
-            selectedTile = null;
-            redraw();
-
-            const randomCapture = c[Math.floor(Math.random() * c.length)];
-            const rCr = randomCapture.row;
-            const rCc = randomCapture.col;
-            const to = { row: rCr, col: rCc };
-
-            const from = { row: pr, col: pc };
-            let output = null;
-
-            output = piece.movePiece(board, to, from, randomCapture);
-
-            board = output;
-            lastMovedPiece = piece;
-            return;
-        }
-
-    }
-
-    // Left to play a non capture/out-of-check move
-
-    let rO2 = shuffledIndices(blackPieces.length - 1); // randomOrder2
-    let rP = null;
-    let shmoves = [];
-    for (let index of rO2) {
-        rP = blackPieces[index];
-        if (rP.isPinnedPiece(board)) {
-            continue;
-        }
-        shmoves = rP.getMoves(board, rP.rank, rP.file); // all moves of randomPiece
-        if (shmoves.length > 0) {
-            break;
-        }
-    }
-    if (shmoves.length <= 0) {
-        // No move found, pass
-        lastMovedPiece = null;
-        return;
-    }
-
-    let rM = null;
-    let broken = false;
-
-    if (rP instanceof King) {
-        let rO3 = shuffledIndices(shmoves.length - 1);
-        for (let index of rO3) {
-            rM = shmoves[index];
-            if (!attackedPiece(board, rP, rM.row, rM.col, 'white')) {
-                // safe square to move
-                broken = true;
-                break;
-            }
-        }
-    }
-    else {
-        rM = shmoves[Math.floor(Math.random() * shmoves.length)]; // randomMove
-    }
-
-    if (!broken) {
-        for (let piece of blackPieces) {
-            if (piece != blackKing && piece.isPinnedPiece(board) === false) {
-                let shm2 = piece.getMoves(board, piece.rank, piece.file);
-                if (shm2.length > 0) {
-                    rP = piece;
-                    rM = shm2[Math.floor(Math.random() * shm2.length)];
-                    break;
-                }
-
-            }
-        }
-    }
-
-    // If all pieces pinned, no other pieces left, no other legal moves,
-    // play the chosen king move (that may move into check) from earlier
-
-    const pr = rP.rank; // Piece row
-    const pc = rP.file; // Piece col
-
-    // Highlight moved piece, wait, unhighlight
-    selectedTile = { row: pr, col: pc };
-    redraw();
-
-    await delay(300);
-
-    selectedTile = null;
-    redraw();
-
-    const from = { row: pr, col: pc };
-    const mr = rM.row; // Move row
-    const mc = rM.col; // Move col
-    const to = { row: mr, col: mc };
-    let output = rP.movePiece(board, to, from, rM);
-
-    board = output;
-
-    lastMovedPiece = rP;
-    return;
-
-}
-
-function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 export function setup() {
     initializeBoard();
@@ -600,13 +331,6 @@ export function setup() {
 }
 
 export function startGame() {
-
-    document.getElementById("levelMessage").textContent =
-        `Evo Rook: Passive Ability: Kamikaze (Up, Down, Left, Right).  
-        When captured, an explosion is triggered around the occupied square.  
-        ALL pieces 1 square away in cardinal directions are captured.  
-        The occupied square is unaffected by this ability.`;
-
     canvas.onclick = null; // reset
     canvas.onclick = (e) => {
 
@@ -636,55 +360,6 @@ canvas.addEventListener('click', (e) => {
     handleClick(row, col);
 });
 
-function attackedPiece(board, piece = null, row = null, col = null, color = null) {
-
-    let opps = []
-
-    let r, c, otherColor = null;
-    if (row !== null && col !== null && color !== null) {
-        // provided target square
-        r = row;
-        c = col;
-        otherColor = color;
-    }
-    else {
-        // Use the pieces square
-        r = piece.rank;
-        c = piece.file;
-        otherColor = piece.color === 'white' ? 'black' : 'white';
-    }
-    for (let ro = 0; ro < board.length; ro++) {
-        for (let co = 0; co < board[0].length; co++) {
-            const obj = board[ro][co];
-
-            if (obj instanceof Piece && obj.color === otherColor) {
-                const checkedTiles = {};
-                checkedTiles[`${r},${c}`] = true;
-                if (obj.isPossibleMove(board, obj.rank, obj.file, checkedTiles, piece)) {
-                    opps.push(obj);
-                }
-            }
-        }
-    }
-
-    if (opps.length > 0) {
-        return opps;
-    }
-
-    return null;
-}
-
-function shuffledIndices(n) {
-    // randomizes indices
-    const indices = Array.from({ length: n + 1 }, (_, i) => i); // [0, 1, 2, ..., n]
-
-    for (let i = indices.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [indices[i], indices[j]] = [indices[j], indices[i]]; // swap
-    }
-
-    return indices;
-}
 
 async function processEvoSelections() {
     evoSelectionMade = false;
@@ -735,4 +410,3 @@ async function firstStart() {
 }
 
 firstStart();
-

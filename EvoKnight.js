@@ -4,6 +4,7 @@ export class EvoKnight extends Knight {
     constructor(color, rank, file) {
         super(color, rank, file);
         this.evod = true;
+        this.isEvoRook = false;
     }
 }
 

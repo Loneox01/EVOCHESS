@@ -1,11 +1,13 @@
 import { Piece } from '../Piece.js';
 import { EvoKnight } from '../KnightFiles/EvoKnight.js';
-import { King } from '../KingFiles/King.js';
 
 export class Queen extends Piece {
     constructor(color, rank, file) {
         super(color, rank, file);
         this.evod = false;
+        this.isEvoRook = false;
+        this.canPinCard = true;
+        this.canPinDiag = true;
     }
 
     getSymbol() {

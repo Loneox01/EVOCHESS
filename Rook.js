@@ -1,6 +1,5 @@
 import { Piece } from '../Piece.js';
 import { EvoKnight } from '../KnightFiles/EvoKnight.js';
-import { King } from '../KingFiles/King.js';
 
 
 export class Rook extends Piece {
@@ -8,6 +7,8 @@ export class Rook extends Piece {
         super(color, rank, file);
         this.hasMoved = false;
         this.evod = false;
+        this.isEvoRook = false;
+        this.canPinCard = true;
     }
 
     getSymbol() {
@@ -124,8 +125,12 @@ export class Rook extends Piece {
     movePiece(board, to, from, move = null) {
         this.rank = to.row;
         this.file = to.col;
+        const victim = board[to.row][to.col];
         board[to.row][to.col] = this;
         board[from.row][from.col] = null;
+        if (victim != null && victim.isEvoRook) {
+            board = victim.boom(board);
+        }
 
         if (this.hasMoved === false) {
             this.hasMoved = true;

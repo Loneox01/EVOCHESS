@@ -6,6 +6,8 @@ export class King extends Piece {
         super(color, rank, file);
         this.hasMoved = false;
         this.evod = false;
+        this.isEvoRook = false;
+        this.isKing = true;
     }
 
     getSymbol() {
@@ -177,11 +179,19 @@ export class King extends Piece {
             }
         }
 
-        board[to.row][to.col] = this; // Move king
+        const victim = board[to.row][to.col];
+        board[to.row][to.col] = this;
         board[from.row][from.col] = null;
+        if (victim != null && victim != null && victim.isEvoRook) {
+            board = victim.boom(board);
+        }
 
         this.hasMoved = true;
         return board;
+    }
+
+    isPinnedPiece() {
+        return false;
     }
 }
 

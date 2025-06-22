@@ -6,6 +6,7 @@ export class Pawn extends Piece {
         this.moved2 = false;
         this.homeSquare = true;
         this.evod = false;
+        this.isEvoRook = false;
 
     }
 
@@ -235,7 +236,11 @@ export class Pawn extends Piece {
         if ((this.color === 'black' && to.row === 7) || (this.color === 'white' && to.row === 0)) {
             return 'PROMOTE';
         }
+        const victim = board[to.row][to.col];
         board[to.row][to.col] = this;
+        if (victim != null && victim.isEvoRook) {
+            board = victim.boom(board);
+        }
         board[from.row][from.col] = null;
 
         return board;

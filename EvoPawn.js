@@ -1,11 +1,13 @@
 import { Pawn } from './Pawn.js';
 
+
 export class EvoPawn extends Pawn {
     constructor(color, rank, file) {
         super(color, rank, file);
         this.moved2 = false;
         this.homeSquare = true;
         this.evod = true;
+        this.isEvoRook = false;
     }
 
     getMoves(board, row, col, lmp = null) {
@@ -207,6 +209,7 @@ export class EvoPawn extends Pawn {
     }
 
     movePiece(board, to, from, move = null) {
+        let croissanted = false;
         this.rank = to.row;
         this.file = to.col;
         if (Math.abs(from.row - to.row) >= 2) {
@@ -226,18 +229,37 @@ export class EvoPawn extends Pawn {
                 }
             }
             if (move.type === 'croissantable') {
+                croissanted = true;
+                board[to.row][to.col] = this;
                 if (to.row === from.row + 2) {
                     this.moved2 = true; // This should already be covered by the if at the beginning, but just in case
+                    const victim = board[from.row + 1][from.col];
                     board[from.row + 1][from.col] = null;
+                    if (victim != null && victim.isEvoRook) {
+                        board = victim.boom(board);
+                    }
                 }
                 else if (to.row === from.row - 2) {
-                    board[from.row - 1][from.col] = null; // Same with this
+                    this.moved2 = true; // Same with this
+                    const victim = board[from.row - 1][from.col];
+                    board[from.row - 1][from.col] = null;
+                    if (victim != null && victim.isEvoRook) {
+                        board = victim.boom(board);
+                    }
                 }
                 else if (to.col === from.col + 2) {
+                    const victim = board[from.row][from.col + 1];
                     board[from.row][from.col + 1] = null;
+                    if (victim != null && victim.isEvoRook) {
+                        board = victim.boom(board);
+                    }
                 }
                 else if (to.col === from.col - 2) {
+                    const victim = board[from.row][from.col - 1];
                     board[from.row][from.col - 1] = null;
+                    if (victim != null && victim.isEvoRook) {
+                        board = victim.boom(board);
+                    }
                 }
                 else {
                     console.log("croissant error");
@@ -252,8 +274,14 @@ export class EvoPawn extends Pawn {
         if ((this.color === 'black' && to.row === 7) || (this.color === 'white' && to.row === 0)) {
             return 'PROMOTE';
         }
-        board[to.row][to.col] = this;
+        const victim = board[to.row][to.col];
+        if (!croissanted) {
+            board[to.row][to.col] = this;
+        }
         board[from.row][from.col] = null;
+        if (victim != null && victim.isEvoRook) {
+            board = victim.boom(board);
+        }
 
         return board;
     }

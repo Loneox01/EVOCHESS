@@ -94,19 +94,9 @@ function initializeBoard() {
     board[0][4] = k;
     blackPieces.push(k);
 
-    for (let i = 0; i < 8; i++) {
-        if (i !== 4) {
-            const a = new EvoRook('black', 0, i);
-            board[0][i] = a;
-            blackPieces.push(a);
-        }
-        const b = new EvoRook('black', 1, i);
-        board[1][i] = b;
-        blackPieces.push(b);
-        if (3 <= i && i <= 5) {
-            board[2][i] = new EvoRook('black', 2, i);
-        }
-    }
+    const n = new Knight('black', 0, 0);
+    board[0][0] = n;
+    blackPieces.push(n);
 
     // White pieces
     board[7][0] = new Rook('white', 7, 0);
@@ -131,23 +121,23 @@ function initializeBoard() {
     board[7][3] = new Queen('white', 7, 3);
     whiteKing = new King('white', 7, 4);
     board[7][4] = whiteKing;
-    if (evo1 === 'Pawn' || evo2 === 'Pawn') {
-        for (let i = 0; i < 8; i++) {
-            board[6][i] = new EvoPawn('white', 6, i);
-            if (3 <= i && i <= 5) {
-                board[5][i] = new EvoPawn('white', 5, i);
-            }
+    // if (evo1 === 'Pawn' || evo2 === 'Pawn') {
+    //     for (let i = 0; i < 8; i++) {
+    //         board[6][i] = new EvoPawn('white', 6, i);
+    //         if (3 <= i && i <= 5) {
+    //             board[5][i] = new EvoPawn('white', 5, i);
+    //         }
 
-        }
-    }
-    else {
-        for (let i = 0; i < 8; i++) {
-            board[6][i] = new Pawn('white', 6, i);
-            if (3 <= i && i <= 5) {
-                board[5][i] = new Pawn('white', 5, i);
-            }
-        }
-    }
+    //     }
+    // }
+    // else {
+    //     for (let i = 0; i < 8; i++) {
+    //         board[6][i] = new Pawn('white', 6, i);
+    //         if (3 <= i && i <= 5) {
+    //             board[5][i] = new Pawn('white', 5, i);
+    //         }
+    //     }
+    // }
 }
 
 function drawPieces() {
@@ -249,7 +239,6 @@ async function handleClick(row, col) {
                             turn = 'black';
                             blackMove = true;
                         }
-                        debugger;
                         redraw();
 
                         let gameStatus = gameOver(board);
