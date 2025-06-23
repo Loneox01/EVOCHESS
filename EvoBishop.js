@@ -223,9 +223,9 @@ export class EvoBishop extends Bishop {
                     }
                     else if (!inBounds(r + dr, c + dc)) {
                         // account for bounce for King move
-                        if ((r < 0 || r > 7)) {
+                        if ((r + dr < 0 || r + dr > 7)) {
                             // row out of bounds, bounce
-                            if (!(c < 0 || c > 7)) {
+                            if (!(c + dc < 0 || c + dc > 7)) {
                                 r -= dr;
                                 c += dc;
                             }
