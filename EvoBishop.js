@@ -33,7 +33,7 @@ export class EvoBishop extends Bishop {
                     }
                     else {
                         // corner
-                        break;
+                        continue;
                     }
                 }
                 else {
@@ -212,6 +212,7 @@ export class EvoBishop extends Bishop {
 
             while (!(r === this.rank && c === this.file)) {
                 const target = board[r][c];
+                debugger;
                 if (target === null) {
                     if (`${r},${c}` in targets) {
                         return true;

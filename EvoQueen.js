@@ -103,7 +103,7 @@ export class EvoQueen extends Queen {
         }
 
         for (let p of this.minions) {
-            if (p.isPossibleMove(board, p.rank, p.col, targets, piece)) {
+            if (p.isPossibleMove(board, p.rank, p.file, targets, piece)) {
                 return true;
             }
         }

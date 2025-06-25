@@ -21,9 +21,24 @@
                     data-evo-options="None,Pawn,Knight,Bishop">Story: R</button>
                 <button onclick="loadGame('/Levels/queenLevel')" data-evo="true"
                     data-evo-options="None,Pawn,Knight,Bishop,Rook">Story: Q</button>
+                <button onclick="loadGame('/Levels/kingLevel')" data-evo="true"
+                    data-evo-options="None,Pawn,Knight,Bishop,Rook,Queen">Story: K</button>
+                <button onclick="loadGame('/Levels/finalLevel')" data-evo="true"
+                    data-evo-options="None,Pawn,Knight,Bishop,Rook,Queen,King">Finale</button>
             </div>
 
             <div id="centerColumn">
+                <div id="evoSelectionBlack" class="evoSelection">
+                    <label for="evo1Black">Choose Evo 1 (Black):</label>
+                    <select id="evo1Black">
+                        <option value="" disabled selected>Select Evo 1</option>
+                    </select>
+
+                    <label for="evo2Black">Choose Evo 2 (Black):</label>
+                    <select id="evo2Black">
+                        <option value="" disabled selected>Select Evo 2</option>
+                    </select>
+                </div>
                 <div id="wrapper">
                     <canvas id="board" width="480" height="480"></canvas>
 
@@ -35,12 +50,12 @@
                 </div>
 
                 <div id="evoSelection">
-                    <label for="evo1">Choose Evo 1:</label>
+                    <label for="evo1">Choose Evo 1 (White):</label>
                     <select id="evo1">
                         <option value="" disabled selected>Select Evo 1</option>
                     </select>
 
-                    <label for="evo2">Choose Evo 2:</label>
+                    <label for="evo2">Choose Evo 2 (White):</label>
                     <select id="evo2">
                         <option value="" disabled selected>Select Evo 2</option>
                     </select>
@@ -55,6 +70,8 @@
                 <button onclick="loadGame('/Levels/PVPbishop')">PVP: B</button>
                 <button onclick="loadGame('/Levels/PVProok')" data-evo="true"
                     data-evo-options="None,Pawn,Knight,Bishop">PVP: R</button>
+                <button onclick="loadGame('/Levels/PVPevoc')" data-evo="true"
+                    data-evo-options="None,Pawn,Knight,Bishop,Rook,Queen,King">EvoChess</button>
             </div>
         </div>
 
@@ -73,6 +90,11 @@
                 const evo1Select = document.getElementById("evo1");
                 const evo2Select = document.getElementById("evo2");
                 const evoSelectionBox = document.getElementById("evoSelection");
+
+                const evo1BlackSelect = document.getElementById("evo1Black");
+                const evo2BlackSelect = document.getElementById("evo2Black");
+                const evoSelectionBlackBox = document.getElementById("evoSelectionBlack");
+
                 const levelMessage = document.getElementById("levelMessage");
 
                 const buttons = document.querySelectorAll("button");
@@ -86,9 +108,11 @@
 
                         if (isEvo) {
                             evoSelectionBox.style.display = "block";
+                            evoSelectionBlackBox.style.display = isPVP ? "block" : "none";
+
                             const options = button.dataset.evoOptions.split(',');
 
-                            // Populate evo1
+                            // Populate white evo menu
                             evo1Select.innerHTML = `<option value="" disabled selected>Select Evo 1</option>`;
                             options.forEach(opt => {
                                 const option = document.createElement("option");
@@ -97,7 +121,6 @@
                                 evo1Select.appendChild(option);
                             });
 
-                            // Reset evo2 on change of evo1
                             evo1Select.onchange = () => {
                                 const selected = evo1Select.value;
                                 evo2Select.innerHTML = `<option value="" disabled selected>Select Evo 2</option>`;
@@ -111,12 +134,42 @@
                                 });
                             };
 
-                            // Clear evo2 initially
                             evo2Select.innerHTML = `<option value="" disabled selected>Select Evo 2</option>`;
+
+                            // Populate black evo menu (PVP only)
+                            if (isPVP) {
+                                evo1BlackSelect.innerHTML = `<option value="" disabled selected>Select Evo 1</option>`;
+                                options.forEach(opt => {
+                                    const option = document.createElement("option");
+                                    option.value = opt;
+                                    option.textContent = opt;
+                                    evo1BlackSelect.appendChild(option);
+                                });
+
+                                evo1BlackSelect.onchange = () => {
+                                    const selected = evo1BlackSelect.value;
+                                    evo2BlackSelect.innerHTML = `<option value="" disabled selected>Select Evo 2</option>`;
+                                    options.forEach(opt => {
+                                        if (opt !== selected || opt === 'None') {
+                                            const option = document.createElement("option");
+                                            option.value = opt;
+                                            option.textContent = opt;
+                                            evo2BlackSelect.appendChild(option);
+                                        }
+                                    });
+                                };
+
+                                evo2BlackSelect.innerHTML = `<option value="" disabled selected>Select Evo 2</option>`;
+                            }
+
                         } else {
                             evoSelectionBox.style.display = "none";
                             evo1Select.innerHTML = `<option value="" disabled selected>Select Evo 1</option>`;
                             evo2Select.innerHTML = `<option value="" disabled selected>Select Evo 2</option>`;
+
+                            evoSelectionBlackBox.style.display = "none";
+                            evo1BlackSelect.innerHTML = `<option value="" disabled selected>Select Evo 1</option>`;
+                            evo2BlackSelect.innerHTML = `<option value="" disabled selected>Select Evo 2</option>`;
                         }
                     });
                 });

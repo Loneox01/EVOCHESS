@@ -10,7 +10,7 @@ import { EvoKnight } from '../Pieces/KnightFiles/EvoKnight.js';
 import { EvoBishop } from '../Pieces/BishopFiles/EvoBishop.js';
 import { EvoRook } from '../Pieces/RookFiles/EvoRook.js';
 import { EvoQueen } from '../Pieces/QueenFiles/EvoQueen.js';
-
+import { EvoKing } from '../Pieces/KingFiles/EvoKing.js';
 
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
@@ -18,7 +18,7 @@ const tileLen = canvas.width / 8;
 
 const LIGHT = '#f0d9b5'; // Light tileLens
 const DARK = '#b58863'; // Dark tileLens
-const blackPieces = [];
+let blackPieces = [];
 
 // Game pausers
 let gameFinished = false;
@@ -87,73 +87,74 @@ function createPromotedPiece(choice, color, rank, file) {
 }
 
 function initializeBoard() {
+    blackPieces = [];
     // Default board
     board = Array(8).fill(null).map(() => Array(8).fill(null));
 
-    const k = new King('black', 0, 4);
-    blackKing = k;
+    const k = new EvoKing('black', 0, 4);
     board[0][4] = k;
     blackPieces.push(k);
 
-    let q = new EvoQueen('black', 0, 3);
+    let q = new EvoKing('black', 0, 3);
     board[0][3] = q;
     blackPieces.push(q);
 
-    q = new EvoQueen('black', 1, 3);
+    q = new EvoKing('black', 1, 3);
     board[1][3] = q;
     blackPieces.push(q);
 
-    q = new EvoQueen('black', 1, 4);
+    q = new EvoKing('black', 1, 4);
     board[1][4] = q;
     blackPieces.push(q);
 
     for (let i = 0; i < 4; i++) {
         if (i === 3) {
-            let p = new Pawn('black', i - 1, i);
+            let p = new EvoKing('black', i - 1, i);
             board[i - 1][i] = p;
             blackPieces.push(p);
-            let p2 = new Pawn('black', i - 1, 7 - i);
+            let p2 = new EvoKing('black', i - 1, 7 - i);
             board[i - 1][7 - i] = p2;
             blackPieces.push(p2);
         }
         else {
-            let p = new Pawn('black', 3 - i, i);
+            let p = new EvoKing('black', 3 - i, i);
             board[3 - i][i] = p;
             blackPieces.push(p);
-            let p2 = new Pawn('black', 3 - i, 7 - i);
+            let p2 = new EvoKing('black', 3 - i, 7 - i);
             board[3 - i][7 - i] = p2;
             blackPieces.push(p2);
         }
     }
 
-    let b = new Bishop('black', 2, 0);
+    let b = new EvoKing('black', 2, 0);
     board[2][0] = b;
     blackPieces.push(b);
-    b = new Bishop('black', 2, 7);
+    b = new EvoKing('black', 2, 7);
     board[2][7] = b;
     blackPieces.push(b);
-    b = new Bishop('black', 1, 0);
+    b = new EvoKing('black', 1, 0);
     board[1][0] = b;
     blackPieces.push(b);
-    b = new Bishop('black', 1, 7);
+    b = new EvoKing('black', 1, 7);
     board[1][7] = b;
     blackPieces.push(b);
-    b = new Bishop('black', 1, 1);
+    b = new EvoKing('black', 1, 1);
     board[1][1] = b;
     blackPieces.push(b);
-    b = new Bishop('black', 1, 6);
+    b = new EvoKing('black', 1, 6);
     board[1][6] = b;
     blackPieces.push(b);
 
     for (let i = 0; i < 3; i++) {
-        let r = new Rook('black', 0, i);
+        let r = new EvoKing('black', 0, i);
         board[0][i] = r;
         blackPieces.push(r);
-        r = new Rook('black', 0, 7 - i);
+        r = new EvoKing('black', 0, 7 - i);
         board[0][7 - i] = r;
         blackPieces.push(r);
     }
 
+    blackKing = blackPieces[Math.floor(Math.random() * blackPieces.length)];
 
     // White pieces
     if (evo1 === 'Rook' || evo2 === 'Rook') {
@@ -181,9 +182,16 @@ function initializeBoard() {
         board[7][5] = new Bishop('white', 7, 5);
     }
 
-    board[7][3] = new Queen('white', 7, 3);
+    if (evo1 === 'Queen' || evo2 === 'Queen') {
+        board[7][3] = new EvoQueen('white', 7, 3);
+    }
+    else {
+        board[7][3] = new Queen('white', 7, 3);
+    }
+
     whiteKing = new King('white', 7, 4);
     board[7][4] = whiteKing;
+
     if (evo1 === 'Pawn' || evo2 === 'Pawn') {
         for (let i = 0; i < 8; i++) {
             board[6][i] = new EvoPawn('white', 6, i);
@@ -383,18 +391,21 @@ function gameOver(board) {
     let bk = false;
     let wk = false;
 
-    board.forEach((row, index) => {
-        row.forEach((value, index) => {
-            if (value != null && value instanceof King) {
+    for (let row of board) {
+        for (let value of row) {
+            if (value !== null && value instanceof King) {
                 if (value.color === 'white') {
                     wk = true;
                 }
                 else {
-                    bk = true;
+                    if (value === blackKing) {
+                        bk = true;
+                    }
                 }
             }
-        });
-    });
+        }
+    }
+
     if (!wk && !bk) {
         return 'Draw.';
     }
@@ -726,10 +737,12 @@ export function setup() {
 export function startGame() {
 
     document.getElementById("levelMessage").textContent =
-        `Evo Queen: Active Ability: Omniscient Seer.   
-        Scope is extended by allied Bishops and Rooks,  
-        After capturing a piece in the extended scope,  
-        this piece transforms to Queen.`;
+        `Evo King: Active Ability: Soverign Absolute.   
+        Capturing an enemy piece changes their allegiance,  
+        Converted pieces spawn at the originally occupied square    
+        and automatically become Evolved.  
+        
+        Beware of the 'true' King.`;
 
     canvas.onclick = null; // reset
     canvas.onclick = (e) => {

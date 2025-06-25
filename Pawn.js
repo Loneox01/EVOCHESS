@@ -47,7 +47,7 @@ export class Pawn extends Piece {
                     // EN CROISSANT
                     let theVictim = board[row][col + 1]
                     if (theVictim === lmp && theVictim.moved2) {
-                        moves.push({ row: row - 1, col: col + 1, passantable: true });
+                        moves.push({ row: row - 1, col: col + 1, type: 'passantable' });
                     }
                 }
             }
@@ -59,7 +59,7 @@ export class Pawn extends Piece {
                     // EN CROISSANT
                     let theVictim = board[row][col - 1]
                     if (theVictim === lmp && theVictim.moved2) {
-                        moves.push({ row: row - 1, col: col - 1, passantable: true });
+                        moves.push({ row: row - 1, col: col - 1, type: 'passantable' });
                     }
                 }
             }
@@ -96,7 +96,7 @@ export class Pawn extends Piece {
                     // EN CROISSANT
                     let theVictim = board[row][col + 1]
                     if (theVictim === lmp && theVictim.moved2) {
-                        moves.push({ row: row + 1, col: col + 1, passantable: true }); // New key
+                        moves.push({ row: row + 1, col: col + 1, type: 'passantable' }); // New key
                     }
                 }
             }
@@ -108,7 +108,7 @@ export class Pawn extends Piece {
                     // EN CROISSANT
                     let theVictim = board[row][col - 1]
                     if (theVictim === lmp && theVictim.moved2) {
-                        moves.push({ row: row + 1, col: col - 1 });
+                        moves.push({ row: row + 1, col: col - 1, type: 'passantable' });
                     }
                 }
             }
@@ -131,7 +131,7 @@ export class Pawn extends Piece {
                     // EN CROISSANT
                     let theVictim = board[row][col + 1]
                     if (theVictim === lmp && theVictim.moved2) {
-                        moves.push({ row: row - 1, col: col + 1, passantable: true });
+                        moves.push({ row: row - 1, col: col + 1, type: 'passantable' });
                     }
                 }
             }
@@ -143,7 +143,7 @@ export class Pawn extends Piece {
                     // EN CROISSANT
                     let theVictim = board[row][col - 1]
                     if (theVictim === lmp && theVictim.moved2) {
-                        moves.push({ row: row - 1, col: col - 1, passantable: true });
+                        moves.push({ row: row - 1, col: col - 1, type: 'passantable' });
                     }
                 }
             }
@@ -161,7 +161,7 @@ export class Pawn extends Piece {
                     // EN CROISSANT
                     let theVictim = board[row][col + 1]
                     if (theVictim === lmp && theVictim.moved2) {
-                        moves.push({ row: row + 1, col: col + 1, passantable: true }); // New key
+                        moves.push({ row: row + 1, col: col + 1, type: 'passantable' }); // New key
                     }
                 }
             }
@@ -173,7 +173,7 @@ export class Pawn extends Piece {
                     // EN CROISSANT
                     let theVictim = board[row][col - 1]
                     if (theVictim === lmp && theVictim.moved2) {
-                        moves.push({ row: row + 1, col: col - 1 });
+                        moves.push({ row: row + 1, col: col - 1, type: 'passantable' });
                     }
                 }
             }
@@ -221,6 +221,7 @@ export class Pawn extends Piece {
         if (move != null) {
             if (move.type === 'passantable') {
                 if (this.color === 'white') {
+                    debugger;
                     board[to.row + 1][to.col] = null;
                 }
                 else {
