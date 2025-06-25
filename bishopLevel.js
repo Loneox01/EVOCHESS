@@ -402,6 +402,10 @@ async function blackBot() {
                     redraw();
                     await delay(300);
                     bp.movePiece(board, { row: theOpp.rank, col: theOpp.file }, selectedTile);
+                    const to = board[theOpp.rank][theOpp.file];
+                    if (to !== null && to.color === 'black' && to !== bp) {
+                        blackPieces.push(to);
+                    }
                     selectedTile = null;
                     return;
                 }
@@ -452,6 +456,11 @@ async function blackBot() {
             let output = null;
 
             output = piece.movePiece(board, to, from, randomCapture);
+
+            const to2 = board[rCr][rCc];
+            if (to2 !== null && to2.color === 'black' && to2 !== piece) {
+                blackPieces.push(to2);
+            }
 
             board = output;
             lastMovedPiece = piece;

@@ -42,7 +42,6 @@ export class Piece {
     }
 
     isPinnedPiece(board) {
-        debugger;
         const directions = [
             [1, 1],   // down-right
             [-1, 1],  // up-right
