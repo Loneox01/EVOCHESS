@@ -17,10 +17,92 @@ export class EvoKing extends King {
         this.evod = true;
         this.isEvoRook = false;
         this.isKing = true;
+        this.allyCaptures = 3;
+    }
+
+    getMoves(board, row, col) {
+        const moves = [];
+        const directions = [
+            [1, 1],   // down-right
+            [-1, 1],  // up-right
+            [1, -1],  // down-left
+            [-1, -1],  // up-left
+            [1, 0],   // up
+            [-1, 0],  // down
+            [0, 1],  // right
+            [0, -1]  // left
+        ];
+
+        for (const [dr, dc] of directions) {
+            let r = row + dr;
+            let c = col + dc;
+
+            if (inBounds(r, c)) {
+                const target = board[r][c];
+                if (target === null) {
+                    moves.push({ row: r, col: c });
+                } else if (target.color !== this.color) {
+                    moves.push({ row: r, col: c });
+                } else if (target.color === this.color && this.allyCaptures > 0) {
+                    // Allow moving to allied piece squares if we haven't used all 3 takes
+                    moves.push({ row: r, col: c });
+                }
+            }
+        }
+
+        if (this.hasMoved === false) {
+            // Castle check
+            let castleBlocked = false;
+            if (board[row][col + 1] === null && board[row][col + 2] === null && board[row][col + 3] instanceof Rook) {
+                if (board[row][col + 3].hasMoved === false) {
+                    const otherColor = this.color === 'white' ? 'black' : 'white';
+                    for (let r = 0; r < board.length; r++) {
+                        for (let c = 0; c < board[0].length; c++) {
+                            const obj = board[r][c];
+                            if (obj !== null && obj.color === otherColor) {
+                                const checkedTiles = {};
+                                checkedTiles[`${row},${col}`] = true;
+                                checkedTiles[`${row},${col + 1}`] = true;
+                                if (obj.isPossibleMove(board, r, c, checkedTiles, this)) {
+                                    castleBlocked = true;
+                                }
+                            }
+                        }
+                    }
+
+                    if (!castleBlocked) {
+                        moves.push({ row: row, col: col + 2 });
+                    }
+                }
+            }
+            if (board[row][col - 1] === null && board[row][col - 2] === null && board[row][col - 3] === null && board[row][col - 4] instanceof Rook) {
+                if (board[row][col - 4].hasMoved === false) {
+                    for (let r = 0; r < board.length; r++) {
+                        for (let c = 0; c < board[0].length; c++) {
+                            const obj = board[r][c];
+                            const otherColor = this.color === 'white' ? 'black' : 'white';
+                            if (obj !== null && obj.color === otherColor) {
+                                const checkedTiles = {}
+                                checkedTiles[`${row},${col}`] = true;
+                                checkedTiles[`${row},${col - 1}`] = true;
+                                if (obj.isPossibleMove(board, r, c, checkedTiles, this)) {
+                                    castleBlocked = true;
+                                }
+                            }
+                        }
+                    }
+                    if (!castleBlocked) {
+                        moves.push({ row: row, col: col - 2 });
+                    }
+                }
+            }
+        }
+
+        return moves;
     }
 
     movePiece(board, to, from, move = null) {
-        // First, perform the standard King move (including castling and EvoRook handling)
+
         const victim = board[to.row][to.col];
         this.rank = to.row;
         this.file = to.col;
@@ -44,19 +126,17 @@ export class EvoKing extends King {
             }
         }
 
-        // Move the EvoKing to the target square
         board[to.row][to.col] = this;
         board[from.row][from.col] = null;
         this.hasMoved = true;
 
-        // Handle EvoRook boom if the victim is an EvoRook (regardless of color, per base King logic)
         if (victim != null && victim.isEvoRook) {
             board = victim.boom(board);
         }
 
-        // EvoKing special ability: If capturing an opposing piece, spawn an evolved version
-        // of the captured piece in the original square with EvoKing's color
-        if (victim != null && victim.color !== this.color) {
+
+        // Spawn a piece
+        if (victim != null) {
             let spawned = null;
             if (victim instanceof Pawn) {
                 spawned = new EvoPawn(this.color, from.row, from.col);
@@ -72,10 +152,27 @@ export class EvoKing extends King {
                 spawned = new EvoKing(this.color, from.row, from.col);
             }
 
-            // Place the spawned piece in the original square
+            if (victim.color === this.color) {
+                this.allyCaptures--;
+            }
+
+            // Cover promotion by King move
+            if (this.color === 'white') {
+                if (victim instanceof Pawn && from.row === 0) {
+                    return 'PROMOTE';
+                }
+            }
+            else {
+                if (victim instanceof Pawn && from.row === 7) {
+                    return 'PROMOTE';
+                }
+            }
             if (spawned) {
+                // Place the spawned piece in the original square
                 board[from.row][from.col] = spawned;
             }
+
+
         }
 
         return board;

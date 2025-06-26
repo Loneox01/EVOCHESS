@@ -390,10 +390,6 @@ async function blackBot() {
         await delay(300);
         selectedTile = null;
         opp.movePiece(board, { row: whiteKing.rank, col: whiteKing.file }, { row: opp.rank, col: opp.file });
-        const spawned = board[pr][pc];
-        if (spawned && spawned.color === 'black') {
-            blackPieces.push(spawned);
-        }
         return;
     }
     let opp2 = attackedPiece(board, blackKing);

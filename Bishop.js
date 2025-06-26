@@ -32,7 +32,7 @@ export class Bishop extends Piece {
                     moves.push({ row: r, col: c });
                 } else {
                     if (target.color !== this.color) {
-                        if (!((Math.abs(row - r) + Math.abs(col - c) > 3) && (target instanceof EvoKnight))) {
+                        if (!((Math.abs(row - r) + Math.abs(col - c) >= 3) && (target instanceof EvoKnight))) {
                             moves.push({ row: r, col: c });
                         }
                     }
@@ -65,7 +65,7 @@ export class Bishop extends Piece {
                     // do nothing
                 } else {
                     if (target.color !== this.color) {
-                        if (!((Math.abs(row - r) + Math.abs(col - c) > 3) && (target instanceof EvoKnight))) {
+                        if (!((Math.abs(row - r) + Math.abs(col - c) >= 3) && (target instanceof EvoKnight))) {
                             moves.push({ row: r, col: c });
                         }
                     }

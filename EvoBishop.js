@@ -54,7 +54,7 @@ export class EvoBishop extends Bishop {
                     moves.push({ row: r, col: c });
                 } else {
                     if (target.color !== this.color) {
-                        if (!((Math.abs(row - r) + Math.abs(col - c) > 3) && (target instanceof EvoKnight))) {
+                        if (!((Math.abs(row - r) + Math.abs(col - c) >= 3) && (target instanceof EvoKnight))) {
                             moves.push({ row: r, col: c });
                         }
                     }
@@ -135,7 +135,7 @@ export class EvoBishop extends Bishop {
                     // do nothing
                 } else {
                     if (target.color !== this.color) {
-                        if (!((Math.abs(row - r) + Math.abs(col - c) > 3) && (target instanceof EvoKnight))) {
+                        if (!((Math.abs(row - r) + Math.abs(col - c) >= 3) && (target instanceof EvoKnight))) {
                             moves.push({ row: r, col: c });
                         }
                     }
@@ -212,7 +212,6 @@ export class EvoBishop extends Bishop {
 
             while (!(r === this.rank && c === this.file)) {
                 const target = board[r][c];
-                debugger;
                 if (target === null) {
                     if (`${r},${c}` in targets) {
                         return true;

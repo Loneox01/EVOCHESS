@@ -254,32 +254,56 @@ function handleClick(row, col) {
         if (move != null) {
             // if clicked move exists in possible moves
             const movedPiece = board[from.row][from.col];
-            if (movedPiece instanceof Pawn) {
+            if (movedPiece instanceof Pawn || movedPiece instanceof EvoKing) {
                 let output = movedPiece.movePiece(board, to, from, move);
                 if (output === "PROMOTE") {
-                    showPromotionMenu(choice => {
-                        board[to.row][to.col] = createPromotedPiece(choice, movedPiece.color, to.row, to.col);
-                        board[from.row][from.col] = null;
+                    if (movedPiece instanceof Pawn) {
+                        showPromotionMenu(choice => {
+                            board[to.row][to.col] = createPromotedPiece(choice, movedPiece.color, to.row, to.col);
+                            board[from.row][from.col] = null;
 
-                        // Update state
-                        lastMovedPiece = movedPiece;
-                        turn = (turn === "white") ? "black" : "white";
-                        moves = [];
-                        selectedTile = null;
-                        getMinions(board);
+                            // Update state
+                            lastMovedPiece = movedPiece;
+                            turn = (turn === "white") ? "black" : "white";
+                            moves = [];
+                            selectedTile = null;
+                            getMinions(board);
 
-                        redraw();
+                            redraw();
 
-                        let gameStatus = gameOver(board);
-                        if (gameStatus != null) {
-                            triggerReset(gameStatus);
-                            document.getElementById('gameOverOverlay').addEventListener('click', () => {
-                                document.getElementById('gameOverOverlay').style.display = 'none';
-                                restartGame();
-                            });
-                        }
-                    });
+                            let gameStatus = gameOver(board);
+                            if (gameStatus != null) {
+                                triggerReset(gameStatus);
+                                document.getElementById('gameOverOverlay').addEventListener('click', () => {
+                                    document.getElementById('gameOverOverlay').style.display = 'none';
+                                    restartGame();
+                                });
+                            }
+                        });
+                    }
+                    else {
+                        showPromotionMenu(choice => {
+                            board[from.row][from.col] = createPromotedPiece(choice, movedPiece.color, to.row, to.col);
 
+                            // Update state
+                            lastMovedPiece = movedPiece;
+                            turn = (turn === "white") ? "black" : "white";
+                            moves = [];
+                            selectedTile = null;
+                            getMinions(board);
+
+                            redraw();
+
+                            let gameStatus = gameOver(board);
+                            if (gameStatus != null) {
+                                triggerReset(gameStatus);
+                                document.getElementById('gameOverOverlay').addEventListener('click', () => {
+                                    document.getElementById('gameOverOverlay').style.display = 'none';
+                                    restartGame();
+                                });
+                            }
+                        });
+                    }
                     return; // prevents further logic from running until promotion completes
                 } else {
                     board = output;
