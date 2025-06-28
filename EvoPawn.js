@@ -209,6 +209,7 @@ export class EvoPawn extends Pawn {
     }
 
     movePiece(board, to, from, move = null) {
+        debugger;
         let croissanted = false;
         this.rank = to.row;
         this.file = to.col;
@@ -272,6 +273,10 @@ export class EvoPawn extends Pawn {
             this.homeSquare = false;
         }
         if ((this.color === 'black' && to.row === 7) || (this.color === 'white' && to.row === 0)) {
+            const victim = board[to.row][to.col];
+            if (victim != null && victim.isEvoRook) {
+                board = victim.boom(board);
+            }
             return 'PROMOTE';
         }
         const victim = board[to.row][to.col];

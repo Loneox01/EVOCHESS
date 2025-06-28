@@ -250,7 +250,7 @@ async function handleClick(row, col) {
         }
 
     }
-    const clickedPiece = board[row][col];
+    let clickedPiece = board[row][col];
     const originalTurn = turn; // Used later, niche but necessary
 
     if (selectedTile != null) {
@@ -259,53 +259,88 @@ async function handleClick(row, col) {
 
         const move = moves.find(m => m.row === row && m.col === col);
         if (move != null) {
+            let output;
             // if clicked move exists in possible moves
             const movedPiece = board[from.row][from.col];
-            if (movedPiece instanceof Pawn) {
+            if (movedPiece instanceof Pawn || movedPiece instanceof EvoKing) {
+                debugger;
                 let output = movedPiece.movePiece(board, to, from, move);
                 if (output === "PROMOTE") {
+                    if (movedPiece instanceof Pawn) {
+                        showPromotionMenu(choice => {
 
-                    showPromotionMenu(choice => {
-                        let victim = board[to.row][to.col];
-                        board[to.row][to.col] = createPromotedPiece(choice, movedPiece.color, to.row, to.col);
-                        board[from.row][from.col] = null;
-                        if (victim != null && victim.isEvoRook) {
-                            board = victim.boom(board);
-                        }
+                            board[to.row][to.col] = createPromotedPiece(choice, movedPiece.color, to.row, to.col);
+                            board[from.row][from.col] = null;
 
-                        // Update state
-                        lastMovedPiece = movedPiece;
-                        moves = [];
-                        selectedTile = null;
-                        getMinions(board);
+                            // Update state
+                            lastMovedPiece = movedPiece;
+                            moves = [];
+                            selectedTile = null;
+                            getMinions(board);
 
-                        if (!blackMove) {
-                            turn = 'black';
-                            blackMove = true;
-                        }
-                        redraw();
+                            if (!blackMove) {
+                                turn = 'black';
+                                blackMove = true;
+                            }
+                            redraw();
 
-                        let gameStatus = gameOver(board);
-                        if (gameStatus != null) {
-                            gameFinished = true;
-                            triggerReset(gameStatus);
-                            document.getElementById('gameOverOverlay').addEventListener('click', () => {
-                                document.getElementById('gameOverOverlay').style.display = 'none';
-                                restartGame();
-                            });
-                        }
+                            let gameStatus = gameOver(board);
+                            if (gameStatus != null) {
+                                gameFinished = true;
+                                triggerReset(gameStatus);
+                                document.getElementById('gameOverOverlay').addEventListener('click', () => {
+                                    document.getElementById('gameOverOverlay').style.display = 'none';
+                                    restartGame();
+                                });
+                            }
 
-                        handleClick(null, null);
-                    });
+                            handleClick(null, null);
+                        });
+                    }
+                    else {
+                        showPromotionMenu(choice => {
 
+                            board[from.row][from.col] = createPromotedPiece(choice, movedPiece.color, to.row, to.col);
+
+                            // Update state
+                            lastMovedPiece = movedPiece;
+                            moves = [];
+                            selectedTile = null;
+                            getMinions(board);
+
+                            if (!blackMove) {
+                                turn = 'black';
+                                blackMove = true;
+                            }
+                            redraw();
+
+                            let gameStatus = gameOver(board);
+                            if (gameStatus != null) {
+                                gameFinished = true;
+                                triggerReset(gameStatus);
+                                document.getElementById('gameOverOverlay').addEventListener('click', () => {
+                                    document.getElementById('gameOverOverlay').style.display = 'none';
+                                    restartGame();
+                                });
+                            }
+
+                            handleClick(null, null);
+                        });
+                    }
                     return; // prevents further logic from running until promotion completes
                 } else {
                     board = output;
                     getMinions(board);
+
                 }
             }
             else {
-                board = movedPiece.movePiece(board, to, from);
+                output = movedPiece.movePiece(board, to, from);
+                // For non-pawn pieces, always use the returned board even if output is 'PROMOTE'
+                // This handles EvoKing's special case
+                if (output !== 'PROMOTE') {
+                    board = output;
+                }
                 getMinions(board);
             }
             lastMovedPiece = movedPiece; // Update LMP
@@ -327,6 +362,7 @@ async function handleClick(row, col) {
                 blackMove = true;
                 await blackBot();
                 blackMove = false;
+                clickedPiece = null;
             }
             else {
                 console.log('Move error');
@@ -427,7 +463,6 @@ function triggerReset(winner) {
 }
 
 async function blackBot() {
-    debugger;
 
     let gameStatus = gameOver(board);
     if (gameStatus != null) {
@@ -452,26 +487,70 @@ async function blackBot() {
     await delay(500);
 
     let opps = attackedPiece(board, whiteKing);
-    let opp = null;
     if (opps) {
-        opp = opps[0];
-    }
+        let opp = opps[0];
+        // Instead of assuming to is the king's position, find the actual move that captures the king
+        let captureMoves = opp.captures(board, opp.rank, opp.file);
+        let kingCaptureMove = captureMoves.find(move => {
+            // For normal captures, move.row and move.col should match king's position
+            // For En Croissant, we need to check if the captured position matches
+            if (move.type === 'croissantable') {
+                // For En Croissant, check if the intermediate square has the king
+                if (move.row === opp.rank + 2 && move.col === opp.file && board[opp.rank + 1][opp.file] === whiteKing) return true;
+                if (move.row === opp.rank - 2 && move.col === opp.file && board[opp.rank - 1][opp.file] === whiteKing) return true;
+                if (move.row === opp.rank && move.col === opp.file + 2 && board[opp.rank][opp.file + 1] === whiteKing) return true;
+                if (move.row === opp.rank && move.col === opp.file - 2 && board[opp.rank][opp.file - 1] === whiteKing) return true;
+            }
 
-    if (opps) {
-        // Capture white king
-        selectedTile = { row: opp.rank, col: opp.file };
-        redraw();
-        await delay(300);
-        const pr = opp.rank;
-        const pc = opp.file;
-        opp.movePiece(board, { row: whiteKing.rank, col: whiteKing.file }, { row: opp.rank, col: opp.file });
-        const spawned = board[pr][pc];
-        if (spawned && spawned.color === 'black') {
-            blackPieces.push(spawned);
+            return move.row === whiteKing.rank && move.col === whiteKing.file;
+        });
+
+        if (kingCaptureMove) {
+            selectedTile = { row: opp.rank, col: opp.file };
+            redraw();
+            await delay(300);
+            const pr = opp.rank;
+            const pc = opp.file;
+            const to = { row: kingCaptureMove.row, col: kingCaptureMove.col };
+            const from = { row: opp.rank, col: opp.file };
+            let output = opp.movePiece(board, to, from, kingCaptureMove);
+
+            // Handle output based on piece type
+            if (output === 'PROMOTE') {
+                if (opp instanceof Pawn) {
+                    board[pr][pc] = null;
+                    let q = new Queen('black', to.row, to.col);
+                    board[to.row][to.col] = q;
+                    blackPieces.push(q);
+                }
+                else if (opp instanceof EvoKing) {
+                    let q = new Queen('black', pr, pc);
+                    board[pr][pc] = q;
+                    blackPieces.push(q);
+                }
+            } else if (output !== 'PROMOTE') {
+                board = output;
+            }
+            // For EvoKing, if output was 'PROMOTE', we skip special handling since the board is already correctly set
+
+            const spawned = board[pr][pc];
+            if (spawned && spawned.color === 'black') {
+                blackPieces.push(spawned);
+            }
+            selectedTile = null;
+            getMinions(board);
+
+            let gameStatus = gameOver(board);
+            if (gameStatus != null) {
+                gameFinished = true;
+                triggerReset(gameStatus);
+                document.getElementById('gameOverOverlay').addEventListener('click', () => {
+                    document.getElementById('gameOverOverlay').style.display = 'none';
+                    restartGame();
+                });
+            }
+            return;
         }
-        selectedTile = null;
-        getMinions(board);
-        return;
     }
 
     let opp2 = attackedPiece(board, blackKing);
@@ -485,34 +564,52 @@ async function blackBot() {
                 if (bp === blackKing || bp.isPinnedPiece(board)) {
                     continue;
                 }
-                const t = {};
+                // Find actual capture move instead of just checking isPossibleMove
+                let captureMoves = bp.captures(board, bp.rank, bp.file);
+                let oppCaptureMove = captureMoves.find(move => {
+                    if (move.type === 'croissantable') {
+                        // Similar check as above for En Croissant
+                        if (move.row === bp.rank + 2 && move.col === bp.file && board[bp.rank + 1][bp.file] === theOpp) return true;
+                        if (move.row === bp.rank - 2 && move.col === bp.file && board[bp.rank - 1][bp.file] === theOpp) return true;
+                        if (move.row === bp.rank && move.col === bp.file + 2 && board[bp.rank][bp.file + 1] === theOpp) return true;
+                        if (move.row === bp.rank && move.col === bp.file - 2 && board[bp.rank][bp.file - 1] === theOpp) return true;
+                    }
+                    return move.row === theOpp.rank && move.col === theOpp.file;
+                });
 
-                t[`${theOpp.rank},${theOpp.file}`] = true;
-                if (bp.isPossibleMove(board, bp.rank, bp.file, t, blackKing)) {
+                if (oppCaptureMove) {
                     selectedTile = { row: bp.rank, col: bp.file };
                     redraw();
                     await delay(300);
                     const pr = bp.rank;
                     const pc = bp.file;
-                    const output = bp.movePiece(board, { row: theOpp.rank, col: theOpp.file }, selectedTile);
+                    const to = { row: oppCaptureMove.row, col: oppCaptureMove.col };
+                    const output = bp.movePiece(board, to, { row: bp.rank, col: bp.file }, oppCaptureMove);
 
                     if (output === 'PROMOTE') {
-                        board[pr][pc] = null;
-                        let q = new Queen('black', theOpp.rank, theOpp.file);
-                        board[theOpp.rank][theOpp.file] = q;
-                        blackPieces.push(q);
-                    }
-                    else {
+                        if (bp instanceof Pawn) {
+                            board[pr][pc] = null;
+                            let q = new Queen('black', to.row, to.col);
+                            board[to.row][to.col] = q;
+                            blackPieces.push(q);
+                        }
+                        else if (bp instanceof EvoKing) {
+                            let q = new Queen('black', pr, pc);
+                            board[pr][pc] = q;
+                            blackPieces.push(q);
+                        }
+                    } else if (output !== 'PROMOTE') {
                         board = output;
-                        const to = board[theOpp.rank][theOpp.file];
-                        if (to !== null && to.color === 'black' && to !== bp) {
-                            blackPieces.push(to);
+                        const toPiece = board[to.row][to.col];
+                        if (toPiece !== null && toPiece.color === 'black' && toPiece !== bp) {
+                            blackPieces.push(toPiece);
                         }
                         const spawned = board[pr][pc];
                         if (spawned && spawned.color === 'black') {
                             blackPieces.push(spawned);
                         }
                     }
+                    // For EvoKing, if output was 'PROMOTE', we skip since board is already set
 
                     selectedTile = null;
                     getMinions(board);
@@ -573,32 +670,31 @@ async function blackBot() {
             const to = { row: rCr, col: rCc };
 
             const from = { row: pr, col: pc };
-            let output = null;
 
-            output = piece.movePiece(board, to, from, randomCapture);
+            let output = piece.movePiece(board, to, from, randomCapture);
 
             if (output === 'PROMOTE') {
-                board[pr][pc] = null;
-                let q = new Queen('black', rCr, rCc);
-                board[rCr][rCc] = q;
-                blackPieces.push(q);
-            }
-
-            else {
-
+                if (piece instanceof Pawn) {
+                    board[pr][pc] = null;
+                    let q = new Queen('black', rCr, rCc);
+                    board[rCr][rCc] = q;
+                    blackPieces.push(q);
+                }
+                else if (piece instanceof EvoKing) {
+                    let q = new Queen('black', pr, pc);
+                    board[pr][pc] = q;
+                    blackPieces.push(q);
+                }
+            } else if (output !== 'PROMOTE') {
+                board = output;
                 const to2 = board[rCr][rCc];
                 if (to2 !== null && to2.color === 'black' && to2 !== piece) {
                     blackPieces.push(to2);
                 }
-
-                board = output;
-
-
                 const spawned = board[pr][pc];
                 if (spawned && spawned.color === 'black') {
                     blackPieces.push(spawned);
                 }
-
             }
 
             lastMovedPiece = piece;
@@ -683,13 +779,12 @@ async function blackBot() {
     const to = { row: mr, col: mc };
     let output = rP.movePiece(board, to, from, rM);
 
-    if (output === 'PROMOTE') {
+    if (output === 'PROMOTE' && rP instanceof Pawn) {
         board[pr][pc] = null;
         let q = new Queen('black', mr, mc);
         board[mr][mc] = q;
         blackPieces.push(q);
-    }
-    else {
+    } else if (output !== 'PROMOTE') {
         board = output;
     }
 
@@ -877,4 +972,3 @@ function getMinions(board) {
 }
 
 firstStart();
-

@@ -369,19 +369,62 @@ async function blackBot() {
     await delay(500);
 
     let opps = attackedPiece(board, whiteKing);
-    let opp = null;
     if (opps) {
-        opp = opps[0];
-    }
+        let opp = opps[0];
+        // Instead of assuming to is the king's position, find the actual move that captures the king
+        let captureMoves = opp.captures(board, opp.rank, opp.file);
+        let kingCaptureMove = captureMoves.find(move => {
+            // For normal captures, move.row and move.col should match king's position
+            // For En Croissant, we need to check if the captured position matches
+            if (move.type === 'croissantable') {
+                // For En Croissant, check if the intermediate square has the king
+                if (move.row === opp.rank + 2 && move.col === opp.file && board[opp.rank + 1][opp.file] === whiteKing) return true;
+                if (move.row === opp.rank - 2 && move.col === opp.file && board[opp.rank - 1][opp.file] === whiteKing) return true;
+                if (move.row === opp.rank && move.col === opp.file + 2 && board[opp.rank][opp.file + 1] === whiteKing) return true;
+                if (move.row === opp.rank && move.col === opp.file - 2 && board[opp.rank][opp.file - 1] === whiteKing) return true;
+            }
 
-    if (opps) {
-        // Capture white king
-        selectedTile = { row: opp.rank, col: opp.file };
-        redraw();
-        await delay(300);
-        opp.movePiece(board, { row: whiteKing.rank, col: whiteKing.file }, { row: opp.rank, col: opp.file });
-        selectedTile = null;
-        return;
+            return move.row === whiteKing.rank && move.col === whiteKing.file;
+        });
+
+        if (kingCaptureMove) {
+            selectedTile = { row: opp.rank, col: opp.file };
+            redraw();
+            await delay(300);
+            const pr = opp.rank;
+            const pc = opp.file;
+            const to = { row: kingCaptureMove.row, col: kingCaptureMove.col };
+            const from = { row: opp.rank, col: opp.file };
+            let output = opp.movePiece(board, to, from, kingCaptureMove);
+
+            // Handle output based on piece type
+            if (output === 'PROMOTE') {
+                if (opp instanceof Pawn) {
+                    board[pr][pc] = null;
+                    let q = new Queen('black', to.row, to.col);
+                    board[to.row][to.col] = q;
+                    blackPieces.push(q);
+                }
+            } else if (output !== 'PROMOTE') {
+                board = output;
+            }
+            const spawned = board[pr][pc];
+            if (spawned && spawned.color === 'black') {
+                blackPieces.push(spawned);
+            }
+            selectedTile = null;
+
+            let gameStatus = gameOver(board);
+            if (gameStatus != null) {
+                gameFinished = true;
+                triggerReset(gameStatus);
+                document.getElementById('gameOverOverlay').addEventListener('click', () => {
+                    document.getElementById('gameOverOverlay').style.display = 'none';
+                    restartGame();
+                });
+            }
+            return;
+        }
     }
 
     let opp2 = attackedPiece(board, blackKing);
