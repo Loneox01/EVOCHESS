@@ -2,6 +2,8 @@ As of **Version 1.63**:
 
 Project is mostly finished, here is a general overview of what EvoChess is.
 
+
+
 **PROJECT SETUP:**
 
 There is no domain for the website, however you can locally setup the project with the following instructions:  
@@ -9,6 +11,7 @@ There is no domain for the website, however you can locally setup the project wi
 - Install Python (or alternatives).
 - In the downloaded projects root directory, bash: python3 -m http.server
 - Open a browser and go to http://localhost:8000  
+
 
 
 **PROJECT DETAILS:**
