@@ -209,7 +209,6 @@ export class EvoPawn extends Pawn {
     }
 
     movePiece(board, to, from, move = null) {
-        debugger;
         let croissanted = false;
         this.rank = to.row;
         this.file = to.col;

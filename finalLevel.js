@@ -263,7 +263,6 @@ async function handleClick(row, col) {
             // if clicked move exists in possible moves
             const movedPiece = board[from.row][from.col];
             if (movedPiece instanceof Pawn || movedPiece instanceof EvoKing) {
-                debugger;
                 let output = movedPiece.movePiece(board, to, from, move);
                 if (output === "PROMOTE") {
                     if (movedPiece instanceof Pawn) {
@@ -484,16 +483,15 @@ async function blackBot() {
             blackPieces.splice(i, 1);
         }
     }
+
     await delay(500);
 
     let opps = attackedPiece(board, whiteKing);
     if (opps) {
+        // Capture the enemy King
         let opp = opps[0];
-        // Instead of assuming to is the king's position, find the actual move that captures the king
         let captureMoves = opp.captures(board, opp.rank, opp.file);
         let kingCaptureMove = captureMoves.find(move => {
-            // For normal captures, move.row and move.col should match king's position
-            // For En Croissant, we need to check if the captured position matches
             if (move.type === 'croissantable') {
                 // For En Croissant, check if the intermediate square has the king
                 if (move.row === opp.rank + 2 && move.col === opp.file && board[opp.rank + 1][opp.file] === whiteKing) return true;
@@ -531,7 +529,6 @@ async function blackBot() {
             } else if (output !== 'PROMOTE') {
                 board = output;
             }
-            // For EvoKing, if output was 'PROMOTE', we skip special handling since the board is already correctly set
 
             const spawned = board[pr][pc];
             if (spawned && spawned.color === 'black') {
@@ -554,9 +551,11 @@ async function blackBot() {
     }
 
     let opp2 = attackedPiece(board, blackKing);
+
     if (opp2) {
         // Black king in check
         if (opp2.length === 1) {
+
             // Capture sole attacking piece
             let theOpp = opp2[0];
             for (let i = 0; i < blackPieces.length; i++) {
@@ -609,7 +608,6 @@ async function blackBot() {
                             blackPieces.push(spawned);
                         }
                     }
-                    // For EvoKing, if output was 'PROMOTE', we skip since board is already set
 
                     selectedTile = null;
                     getMinions(board);
@@ -640,6 +638,76 @@ async function blackBot() {
             }
 
         }
+
+        if (opp2.length === 1) {
+
+            // Block the sole attacking piece
+            let theOpp = opp2[0];
+            if (theOpp instanceof Rook || theOpp instanceof Bishop || theOpp instanceof Queen) {
+
+                let blocks = theOpp.getPath(board, blackKing);
+
+                if (blocks !== null) {
+                    for (let i = 0; i < blackPieces.length; i++) {
+                        let bp = blackPieces[i];
+                        if (bp === blackKing || bp.isPinnedPiece(board)) {
+                            continue;
+                        }
+
+                        // Find moves
+                        let moves = null;
+                        if (bp instanceof Pawn) {
+                            moves = bp.getMoves(board, bp.rank, bp.file, lastMovedPiece);
+                        }
+                        else {
+                            moves = bp.getMoves(board, bp.rank, bp.file);
+                        }
+                        for (let m of moves) {
+                            let block = blocks.find(m2 => m2.row === m.row && m2.col === m.col);
+                            if (block) {
+                                if (m.type) {
+                                    block.type = m.type;
+                                }
+                                // block found
+                                const to = { row: block.row, col: block.col };
+                                const from = { row: bp.rank, col: bp.file };
+
+                                selectedTile = { row: from.row, col: from.col };
+                                redraw();
+                                await delay(300);
+                                const output = bp.movePiece(board, to, from, block);
+
+                                if (output === 'PROMOTE') {
+                                    if (bp instanceof Pawn) {
+                                        board[from.row][from.col] = null;
+                                        let q = new Queen('black', to.row, to.col);
+                                        board[to.row][to.col] = q;
+                                        blackPieces.push(q);
+                                    }
+                                    else if (bp instanceof EvoKing) {
+                                        let q = new Queen('black', from.row, from.col);
+                                        board[from.row][from.col] = q;
+                                        blackPieces.push(q);
+                                    }
+                                }
+                                else {
+                                    board = output;
+                                }
+
+                                selectedTile = null;
+                                lastMovedPiece = bp;
+                                getMinions(board);
+                                redraw();
+                                return;
+
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // End of blackKing in check
     }
 
     const randomOrder = shuffledIndices(blackPieces.length - 1);
@@ -793,8 +861,8 @@ async function blackBot() {
     getMinions(board);
 
     return;
-
 }
+
 
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));

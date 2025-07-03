@@ -287,7 +287,6 @@ async function handleClick(row, col) {
             // if clicked move exists in possible moves
             const movedPiece = board[from.row][from.col];
             if (movedPiece instanceof Pawn || movedPiece instanceof EvoKing) {
-                debugger;
                 let output = movedPiece.movePiece(board, to, from, move);
                 if (output === "PROMOTE") {
                     if (movedPiece instanceof Pawn) {

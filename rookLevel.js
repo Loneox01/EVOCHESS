@@ -249,7 +249,6 @@ async function handleClick(row, col) {
                             turn = 'black';
                             blackMove = true;
                         }
-                        debugger;
                         redraw();
 
                         let gameStatus = gameOver(board);

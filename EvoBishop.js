@@ -308,6 +308,93 @@ export class EvoBishop extends Bishop {
         return board;
     }
 
+    getPath(board, piece) {
+
+        const row = this.rank;
+        const col = this.file;
+
+        const directions = [
+            [1, 1],   // down-right
+            [-1, 1],  // up-right
+            [1, -1],  // down-left
+            [-1, -1]  // up-left
+        ];
+
+
+        for (let [dr, dc] of directions) {
+
+            let r = row + dr;
+            let c = col + dc;
+            let bounceCount = 0;
+
+            if (!inBounds(r, c)) {
+                if ((r < 0 || r > 7)) {
+                    // row out of bounds, bounce
+                    if (!(c < 0 || c > 7)) {
+                        r -= dr * 2;
+                        dr *= -1;
+                    }
+                    else {
+                        // corner
+                        continue;
+                    }
+                }
+                else {
+                    c -= dc * 2;
+                    dc *= -1;
+                }
+                bounceCount++;
+                if (bounceCount > 4) {
+                    console.log('Evo Bishop bounce error');
+                    break;
+                }
+            }
+
+            const moves = [];
+
+            while (!(r === this.rank && c === this.file)) {
+                // This same loop is run over and over, close all else while (inBounds...)
+                const target = board[r][c];
+                if (target === null) {
+                    moves.push({ row: r, col: c });
+                } else {
+                    if (target === piece) {
+                        return moves;
+                    }
+                    break;
+                }
+                r += dr;
+                c += dc;
+
+                if (!inBounds(r, c)) {
+                    if ((r < 0 || r > 7)) {
+                        // row out of bounds, bounce
+                        if (!(c < 0 || c > 7)) {
+                            r -= dr * 2;
+                            dr *= -1;
+                        }
+                        else {
+                            // corner
+                            break;
+                        }
+                    }
+                    else {
+                        c -= dc * 2;
+                        dc *= -1;
+                    }
+                    bounceCount++;
+                    if (bounceCount > 4) {
+                        console.log('Evo Bishop bounce error');
+                        break;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+
 }
 
 function inBounds(row, col) {

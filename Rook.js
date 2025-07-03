@@ -140,6 +140,40 @@ export class Rook extends Piece {
 
         return board;
     }
+
+    getPath(board, piece) {
+        const row = this.rank;
+        const col = this.file;
+
+        const directions = [
+            [1, 0],   // up
+            [-1, 0],  // down
+            [0, 1],  // right
+            [0, -1]  // left
+        ];
+
+        for (const [dr, dc] of directions) {
+            const moves = [];
+            let r = row + dr;
+            let c = col + dc;
+
+            while (inBounds(r, c)) {
+                const target = board[r][c];
+                if (target === null) {
+                    moves.push({ row: r, col: c });
+                } else {
+                    if (target === piece) {
+                        return moves;
+                    }
+                    break;
+                }
+                r += dr;
+                c += dc;
+            }
+        }
+
+        return null;
+    }
 }
 
 function inBounds(row, col) {

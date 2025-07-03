@@ -121,6 +121,40 @@ export class Bishop extends Piece {
         return false;
     }
 
+    getPath(board, piece) {
+        const row = this.rank;
+        const col = this.file;
+
+        const directions = [
+            [1, 1],   // down-right
+            [-1, 1],  // up-right
+            [1, -1],  // down-left
+            [-1, -1]  // up-left
+        ];
+
+        for (const [dr, dc] of directions) {
+            const moves = [];
+            let r = row + dr;
+            let c = col + dc;
+
+            while (inBounds(r, c)) {
+                const target = board[r][c];
+                if (target === null) {
+                    moves.push({ row: r, col: c });
+                } else {
+                    if (target === piece) {
+                        return moves;
+                    }
+                    break;
+                }
+                r += dr;
+                c += dc;
+            }
+        }
+
+        return null;
+    }
+
     // movePiece(board, to, from) {
 
     // }

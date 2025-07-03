@@ -221,7 +221,6 @@ export class Pawn extends Piece {
         if (move != null) {
             if (move.type === 'passantable') {
                 if (this.color === 'white') {
-                    debugger;
                     board[to.row + 1][to.col] = null;
                 }
                 else {

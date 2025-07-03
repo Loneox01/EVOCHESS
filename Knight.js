@@ -50,7 +50,7 @@ export class Knight extends Piece {
 
             if (inBounds(r, c)) {
                 const target = board[r][c];
-                if (!target || (target.color !== this.color && !(target instanceof Knight && target.evod))) {
+                if (target !== null && target.color !== this.color && !(target instanceof Knight && target.evod)) {
                     moves.push({ row: r, col: c });
                 }
             }

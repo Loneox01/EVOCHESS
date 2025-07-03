@@ -214,7 +214,6 @@ async function handleClick(row, col) {
 
                         let gameStatus = gameOver(board);
                         if (gameStatus != null) {
-                            debugger;
                             gameFinished = true;
                             triggerReset(gameStatus);
                             document.getElementById('gameOverOverlay').addEventListener('click', () => {
