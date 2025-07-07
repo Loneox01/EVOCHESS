@@ -726,7 +726,7 @@ async function blackBot() {
 
             let randomCapture = null;
             if (piece === blackKing) {
-                // randon blackKing capture
+                // random blackKing capture
                 // ensure non-protected Piece
                 const indices = shuffledIndices(c.length - 1);
                 let broken = false;
