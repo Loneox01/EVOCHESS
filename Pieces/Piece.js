@@ -120,6 +120,9 @@ export class Piece {
 
     }
 
+    getPath(board, piece) {
+        return null;
+    }
 
 }
 

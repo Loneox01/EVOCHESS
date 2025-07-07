@@ -560,8 +560,13 @@ async function blackBot() {
             let theOpp = opp2[0];
             for (let i = 0; i < blackPieces.length; i++) {
                 let bp = blackPieces[i];
-                if (bp === blackKing || bp.isPinnedPiece(board)) {
+                if (bp.isPinnedPiece(board)) {
                     continue;
+                }
+                else if (bp === blackKing) {
+                    if (attackedPiece(board, blackKing, theOpp.rank, theOpp.file, 'white')) {
+                        continue;
+                    }
                 }
                 // Find actual capture move instead of just checking isPossibleMove
                 let captureMoves = bp.captures(board, bp.rank, bp.file);
@@ -640,67 +645,65 @@ async function blackBot() {
         }
 
         if (opp2.length === 1) {
-
-            // Block the sole attacking piece
+            // Try block
             let theOpp = opp2[0];
-            if (theOpp instanceof Rook || theOpp instanceof Bishop || theOpp instanceof Queen) {
+            let blocks = theOpp.getPath(board, blackKing);
+            if (blocks !== null && blocks.length > 0) {
+                // Squares in path of attacker
+                const blockingSquares = new Set(blocks.map(b => `${b.row},${b.col}`));
 
-                let blocks = theOpp.getPath(board, blackKing);
+                for (let i = 0; i < blackPieces.length; i++) {
+                    let bp = blackPieces[i];
+                    if (bp === blackKing || bp.isPinnedPiece(board)) {
+                        continue;
+                    }
 
-                if (blocks !== null) {
-                    for (let i = 0; i < blackPieces.length; i++) {
-                        let bp = blackPieces[i];
-                        if (bp === blackKing || bp.isPinnedPiece(board)) {
-                            continue;
-                        }
+                    let moves = null;
+                    if (bp instanceof Pawn) {
+                        moves = bp.getMoves(board, bp.rank, bp.file, lastMovedPiece);
+                    } else {
+                        moves = bp.getMoves(board, bp.rank, bp.file);
+                    }
 
-                        // Find moves
-                        let moves = null;
-                        if (bp instanceof Pawn) {
-                            moves = bp.getMoves(board, bp.rank, bp.file, lastMovedPiece);
-                        }
-                        else {
-                            moves = bp.getMoves(board, bp.rank, bp.file);
-                        }
-                        for (let m of moves) {
-                            let block = blocks.find(m2 => m2.row === m.row && m2.col === m.col);
-                            if (block) {
-                                if (m.type) {
-                                    block.type = m.type;
-                                }
-                                // block found
-                                const to = { row: block.row, col: block.col };
-                                const from = { row: bp.rank, col: bp.file };
-
-                                selectedTile = { row: from.row, col: from.col };
-                                redraw();
-                                await delay(300);
-                                const output = bp.movePiece(board, to, from, block);
-
-                                if (output === 'PROMOTE') {
-                                    if (bp instanceof Pawn) {
-                                        board[from.row][from.col] = null;
-                                        let q = new Queen('black', to.row, to.col);
-                                        board[to.row][to.col] = q;
-                                        blackPieces.push(q);
-                                    }
-                                    else if (bp instanceof EvoKing) {
-                                        let q = new Queen('black', from.row, from.col);
-                                        board[from.row][from.col] = q;
-                                        blackPieces.push(q);
-                                    }
-                                }
-                                else {
-                                    board = output;
-                                }
-
-                                selectedTile = null;
-                                lastMovedPiece = bp;
-                                getMinions(board);
-                                redraw();
-                                return;
-
+                    // Check if any move can block
+                    for (let m of moves) {
+                        const moveKey = `${m.row},${m.col}`;
+                        if (blockingSquares.has(moveKey)) {
+                            // Found a blocking move
+                            const blockMove = blocks.find(b => b.row === m.row && b.col === m.col);
+                            if (m.type) {
+                                blockMove.type = m.type;
                             }
+
+                            const to = { row: blockMove.row, col: blockMove.col };
+                            const from = { row: bp.rank, col: bp.file };
+
+                            selectedTile = { row: from.row, col: from.col };
+                            redraw();
+                            await delay(300);
+                            const output = bp.movePiece(board, to, from, blockMove);
+
+                            if (output === 'PROMOTE') {
+                                if (bp instanceof Pawn) {
+                                    board[from.row][from.col] = null;
+                                    let q = new Queen('black', to.row, to.col);
+                                    board[to.row][to.col] = q;
+                                    blackPieces.push(q);
+                                }
+                                else if (bp instanceof EvoKing) {
+                                    let q = new Queen('black', from.row, from.col);
+                                    board[from.row][from.col] = q;
+                                    blackPieces.push(q);
+                                }
+                            } else {
+                                board = output;
+                            }
+
+                            selectedTile = null;
+                            lastMovedPiece = bp;
+                            getMinions(board);
+                            redraw();
+                            return;
                         }
                     }
                 }
@@ -720,6 +723,30 @@ async function blackBot() {
         const c = piece.captures(board, piece.rank, piece.file); // Capture list
         if (c.length > 0) {
             // Has a capturable target
+
+            let randomCapture = null;
+            if (piece === blackKing) {
+                // randon blackKing capture
+                // ensure non-protected Piece
+                const indices = shuffledIndices(c.length - 1);
+                let broken = false;
+                for (let index of indices) {
+                    randomCapture = c[index];
+                    if (!attackedPiece(board, blackKing, randomCapture.row, randomCapture.col, 'white')) {
+                        broken = true;
+                        break;
+                    }
+                }
+                if (!broken) {
+                    // no valid captures found, keep looping through blackPieces
+                    continue;
+                }
+                // else randomCapture is already set, do nothing and continue below
+            }
+            else {
+                randomCapture = c[Math.floor(Math.random() * c.length)];
+            }
+
             const pr = piece.rank;
             const pc = piece.file;
 
@@ -732,7 +759,6 @@ async function blackBot() {
             selectedTile = null;
             redraw();
 
-            const randomCapture = c[Math.floor(Math.random() * c.length)];
             const rCr = randomCapture.row;
             const rCc = randomCapture.col;
             const to = { row: rCr, col: rCc };
