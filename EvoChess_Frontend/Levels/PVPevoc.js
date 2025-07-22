@@ -8,7 +8,8 @@ import { EvoPawn } from '../Pieces/PawnFiles/EvoPawn.js';
 import { EvoKnight } from '../Pieces/KnightFiles/EvoKnight.js';
 import { EvoBishop } from '../Pieces/BishopFiles/EvoBishop.js';
 import { EvoRook } from '../Pieces/RookFiles/EvoRook.js';
-
+import { EvoQueen } from '../Pieces/QueenFiles/EvoQueen.js';
+import { EvoKing } from '../Pieces/KingFiles/EvoKing.js';
 
 
 const canvas = document.getElementById('board');
@@ -21,6 +22,8 @@ const DARK = '#b58863'; // Dark tileLens
 let evoSelectionMade = false;
 let evo1 = null;
 let evo2 = null;
+let evo1Black = null;
+let evo2Black = null;
 
 let activePromotion = false; // True if promotion menu is present
 let turn = "white"; // Turn tracker, either "white" or "black"
@@ -82,19 +85,67 @@ function initializeBoard() {
     // Default board
     board = Array(8).fill(null).map(() => Array(8).fill(null));
 
-    board[0][4] = new King('black', 0, 4);
+    // Black pieces
+    if (evo1Black === 'Rook' || evo2Black === 'Rook') {
+        board[0][0] = new EvoRook('black', 0, 0);
+        board[0][7] = new EvoRook('black', 0, 7);
+    }
+    else {
+        board[0][0] = new Rook('black', 0, 0);
+        board[0][7] = new Rook('black', 0, 7);
+    }
+    if (evo1Black === 'Knight' || evo2Black === 'Knight') {
+        board[0][1] = new EvoKnight('black', 0, 1);
+        board[0][6] = new EvoKnight('black', 0, 6);
+    }
+    else {
+        board[0][1] = new Knight('black', 0, 1);
+        board[0][6] = new Knight('black', 0, 6);
+    }
+    if (evo1Black === 'Bishop' || evo2Black === 'Bishop') {
+        board[0][2] = new EvoBishop('black', 0, 2);
+        board[0][5] = new EvoBishop('black', 0, 5);
+    }
+    else {
+        board[0][2] = new Bishop('black', 0, 2);
+        board[0][5] = new Bishop('black', 0, 5);
+    }
 
-    for (let i = 0; i < 8; i++) {
-        if (i !== 4) {
-            board[0][i] = new EvoRook('black', 0, i);
+    if (evo1Black === 'Queen' || evo2Black === 'Queen') {
+        board[0][3] = new EvoQueen('black', 0, 3);
+    }
+    else {
+        board[0][3] = new Queen('black', 0, 3);
+    }
+    if (evo1Black === 'King' || evo2Black === 'King') {
+        board[0][4] = new EvoKing('black', 0, 4);
+    }
+    else {
+        board[0][4] = new King('black', 0, 4);
+    }
+
+    if (evo1Black === 'Pawn' || evo2Black === 'Pawn') {
+        for (let i = 0; i < 8; i++) {
+            board[1][i] = new EvoPawn('black', 1, i);
+
         }
-        board[1][i] = new EvoRook('black', 1, i);
+    }
+    else {
+        for (let i = 0; i < 8; i++) {
+            board[1][i] = new Pawn('black', 1, i);
+        }
     }
 
 
     // White pieces
-    board[7][0] = new Rook('white', 7, 0);
-    board[7][7] = new Rook('white', 7, 7);
+    if (evo1 === 'Rook' || evo2 === 'Rook') {
+        board[7][0] = new EvoRook('white', 7, 0);
+        board[7][7] = new EvoRook('white', 7, 7);
+    }
+    else {
+        board[7][0] = new Rook('white', 7, 0);
+        board[7][7] = new Rook('white', 7, 7);
+    }
     if (evo1 === 'Knight' || evo2 === 'Knight') {
         board[7][1] = new EvoKnight('white', 7, 1);
         board[7][6] = new EvoKnight('white', 7, 6);
@@ -112,25 +163,32 @@ function initializeBoard() {
         board[7][5] = new Bishop('white', 7, 5);
     }
 
-    board[7][3] = new Queen('white', 7, 3);
-    board[7][4] = new King('white', 7, 4);
+    if (evo1 === 'Queen' || evo2 === 'Queen') {
+        board[7][3] = new EvoQueen('white', 7, 3);
+    }
+    else {
+        board[7][3] = new Queen('white', 7, 3);
+    }
+    if (evo1 === 'King' || evo2 === 'King') {
+        board[7][4] = new EvoKing('white', 7, 4);
+    }
+    else {
+        board[7][4] = new King('white', 7, 4);
+    }
+
     if (evo1 === 'Pawn' || evo2 === 'Pawn') {
         for (let i = 0; i < 8; i++) {
             board[6][i] = new EvoPawn('white', 6, i);
-            if (3 <= i && i <= 5) {
-                board[5][i] = new EvoPawn('white', 5, i);
-            }
 
         }
     }
     else {
         for (let i = 0; i < 8; i++) {
             board[6][i] = new Pawn('white', 6, i);
-            if (3 <= i && i <= 5) {
-                board[5][i] = new Pawn('white', 5, i);
-            }
         }
     }
+
+    getMinions(board);
 }
 
 function drawPieces() {
@@ -195,38 +253,67 @@ function handleClick(row, col) {
         if (move != null) {
             // if clicked move exists in possible moves
             const movedPiece = board[from.row][from.col];
-            if (movedPiece instanceof Pawn) {
+            if (movedPiece instanceof Pawn || movedPiece instanceof EvoKing) {
                 let output = movedPiece.movePiece(board, to, from, move);
                 if (output === "PROMOTE") {
-                    showPromotionMenu(choice => {
-                        board[to.row][to.col] = createPromotedPiece(choice, movedPiece.color, to.row, to.col);
-                        board[from.row][from.col] = null;
+                    if (movedPiece instanceof Pawn) {
+                        showPromotionMenu(choice => {
+                            board[to.row][to.col] = createPromotedPiece(choice, movedPiece.color, to.row, to.col);
+                            board[from.row][from.col] = null;
 
-                        // Update state
-                        lastMovedPiece = movedPiece;
-                        turn = (turn === "white") ? "black" : "white";
-                        moves = [];
-                        selectedTile = null;
+                            // Update state
+                            lastMovedPiece = movedPiece;
+                            turn = (turn === "white") ? "black" : "white";
+                            moves = [];
+                            selectedTile = null;
+                            getMinions(board);
 
-                        redraw();
+                            redraw();
 
-                        let gameStatus = gameOver(board);
-                        if (gameStatus != null) {
-                            triggerReset(gameStatus);
-                            document.getElementById('gameOverOverlay').addEventListener('click', () => {
-                                document.getElementById('gameOverOverlay').style.display = 'none';
-                                restartGame();
-                            });
-                        }
-                    });
+                            let gameStatus = gameOver(board);
+                            if (gameStatus != null) {
+                                triggerReset(gameStatus);
+                                document.getElementById('gameOverOverlay').addEventListener('click', () => {
+                                    document.getElementById('gameOverOverlay').style.display = 'none';
+                                    restartGame();
+                                });
+                            }
+                            saveGameState(board, null, turn, 'PVPevoc');
+                        });
+                    }
+                    else {
+                        showPromotionMenu(choice => {
+                            board[from.row][from.col] = createPromotedPiece(choice, movedPiece.color, to.row, to.col);
 
+                            // Update state
+                            lastMovedPiece = movedPiece;
+                            turn = (turn === "white") ? "black" : "white";
+                            moves = [];
+                            selectedTile = null;
+                            getMinions(board);
+
+                            redraw();
+
+                            let gameStatus = gameOver(board);
+                            if (gameStatus != null) {
+                                triggerReset(gameStatus);
+                                document.getElementById('gameOverOverlay').addEventListener('click', () => {
+                                    document.getElementById('gameOverOverlay').style.display = 'none';
+                                    restartGame();
+                                });
+                            }
+                            saveGameState(board, null, turn, 'PVPevoc');
+                        });
+                    }
                     return; // prevents further logic from running until promotion completes
                 } else {
                     board = output;
+                    getMinions(board);
                 }
             }
             else {
                 board = movedPiece.movePiece(board, to, from);
+                getMinions(board);
             }
             lastMovedPiece = movedPiece; // Update LMP
             if (turn === "white") {
@@ -240,6 +327,16 @@ function handleClick(row, col) {
         }
         moves = []; // Clear possible moves
         selectedTile = null; // Clear selection
+
+        let gameStatus = gameOver(board);
+        if (gameStatus != null) {
+            triggerReset(gameStatus);
+            document.getElementById('gameOverOverlay').addEventListener('click', () => {
+                document.getElementById('gameOverOverlay').style.display = 'none';
+                restartGame();
+            });
+        }
+
     } if (clickedPiece != null && originalTurn === clickedPiece.color) {
         // Select this
         selectedTile = { row, col };
@@ -253,15 +350,8 @@ function handleClick(row, col) {
     }
 
     redraw();
+    saveGameState(board, clickedPiece, turn, 'PVPevoc');
 
-    let gameStatus = gameOver(board);
-    if (gameStatus != null) {
-        triggerReset(gameStatus);
-        document.getElementById('gameOverOverlay').addEventListener('click', () => {
-            document.getElementById('gameOverOverlay').style.display = 'none';
-            restartGame(); // You define this to reinit the board
-        });
-    }
 }
 
 function gameOver(board) {
@@ -298,21 +388,33 @@ async function restartGame() {
 
     const e1 = document.getElementById('evo1');
     const e2 = document.getElementById('evo2');
+    const e1b = document.getElementById('evo1Black');
+    const e2b = document.getElementById('evo2Black');
 
     e1.selectedIndex = 0;
     e2.selectedIndex = 0;
     e1.disabled = false;
     e2.disabled = false;
 
-    const { selection1, selection2 } = await processEvoSelections();
+    e1b.selectedIndex = 0;
+    e2b.selectedIndex = 0;
+    e1b.disabled = false;
+    e2b.disabled = false;
+
+    const { selection1, selection2, selection1Black, selection2Black } = await processEvoSelections();
+
     evo1 = selection1;
     evo2 = selection2;
+    evo1Black = selection1Black;
+    evo2Black = selection2Black;
+
     initializeBoard();
     selectedTile = null;
     moves = [];
     turn = "white";
     lastMovedPiece = null;
     redraw();
+    await saveGameState(board, null, 'white', 'PVPevoc');
 }
 
 function triggerReset(winner) {
@@ -368,8 +470,10 @@ async function processEvoSelections() {
         function trySetup() {
             const e1 = document.getElementById('evo1');
             const e2 = document.getElementById('evo2');
-            if (e1 && e2) {
-                setupListeners(e1, e2, resolve);
+            const e1b = document.getElementById('evo1Black');
+            const e2b = document.getElementById('evo2Black');
+            if (e1 && e2 && e1b && e2b) {
+                setupListeners(e1, e2, e1b, e2b, resolve);
                 return true;
             }
             return false;
@@ -386,27 +490,146 @@ async function processEvoSelections() {
     });
 }
 
-function setupListeners(e1, e2, resolve) {
+function setupListeners(e1, e2, e1b, e2b, resolve) {
     function tryResolve() {
-        if (e1.value && e2.value) {
+        if (e1.value && e2.value && e1b.value && e2b.value) {
             e1.disabled = true;
             e2.disabled = true;
+            e1b.disabled = true;
+            e2b.disabled = true;
             evoSelectionMade = true;
-            resolve({ selection1: e1.value, selection2: e2.value });
+            resolve({
+                selection1: e1.value,
+                selection2: e2.value,
+                selection1Black: e1b.value,
+                selection2Black: e2b.value
+            });
         }
     }
 
     e1.addEventListener('change', tryResolve);
     e2.addEventListener('change', tryResolve);
+    e1b.addEventListener('change', tryResolve);
+    e2b.addEventListener('change', tryResolve);
 }
 
 async function firstStart() {
-    const { selection1, selection2 } = await processEvoSelections();
+    const { selection1, selection2, selection1Black, selection2Black } = await processEvoSelections();
     evo1 = selection1;
     evo2 = selection2;
+    evo1Black = selection1Black;
+    evo2Black = selection2Black;
     initializeBoard();
     drawBoard();
     drawPieces();
+    await saveGameState(board, null, 'white', 'PVPevoc');
+}
+
+function getMinions(board) {
+
+    const white = [];
+    const black = [];
+
+    for (const row of board) {
+        for (const piece of row) {
+            if (piece !== null && (piece instanceof Bishop || piece instanceof Rook)) {
+                if (piece.color === 'white') {
+                    white.push(piece);
+                }
+                else {
+                    black.push(piece);
+                }
+            }
+        }
+    }
+
+    for (const row of board) {
+        for (const piece of row) {
+            if (piece !== null && piece instanceof EvoQueen) {
+                if (piece.color === 'white') {
+                    piece.minions = white;
+                }
+                else {
+                    piece.minions = black;
+                }
+            }
+        }
+    }
+    return board;
+}
+
+async function saveGameState(board, selectedPiece, curTurn, level) {
+    const gameState = await updateGS(board, selectedPiece, curTurn, level);
+
+    await fetch('http://localhost:8001/updateState', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(gameState),
+    });
+}
+
+async function updateGS(board, selectedPiece, curTurn, level = "finalLevel") {
+    let boardJSON = null;
+    let selecPieceJSON = null
+    if (board !== null) {
+        boardJSON = Array(8).fill(null).map(() => Array(8).fill(null));
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const square = board[row][col];
+                if (square != null) {
+                    const pieceJSON = piece2JSON(square);
+                    boardJSON[row][col] = pieceJSON;
+                }
+            }
+        }
+    }
+    if (selectedPiece !== null) {
+        selecPieceJSON = piece2JSON(selectedPiece);
+    }
+
+    return {
+        "board": boardJSON,
+        "turn": curTurn,
+        "selectedPiece": selecPieceJSON,
+        "level": level
+    };
+}
+
+function piece2JSON(piece) {
+    if (!piece) {
+        return null;
+    }
+    let data = {
+        type: piece.constructor.name,  // e.g. "EvoKing", "Pawn", etc.
+        color: piece.color,
+        rank: piece.rank,
+        file: piece.file,
+        evod: piece.evod
+    };
+    if (piece instanceof Pawn) {
+        data.moved2 = piece.moved2;
+        data.onHomeSquare = piece.homeSquare; // boolean
+    }
+    else if (piece instanceof Rook) {
+        data.hasMoved = piece.hasMoved;
+    }
+    else if (piece instanceof King) {
+        data.hasMoved = piece.hasMoved;
+        if (piece instanceof EvoKing) {
+            data.remainingAllyCaptures = piece.allyCaptures;
+        }
+    }
+    else if (piece instanceof EvoQueen) {
+        const m = piece.minions || [];   // minions is undefined/null
+        let minionsJSON = [];
+        for (let minion of m) {
+            const pieceJson = piece2JSON(minion);
+            minionsJSON.push(pieceJson);
+        }
+        data.minions = minionsJSON;
+    }
+
+    return data;
 }
 
 firstStart();

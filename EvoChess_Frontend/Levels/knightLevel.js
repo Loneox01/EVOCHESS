@@ -7,6 +7,10 @@ import { Pawn } from '../Pieces/PawnFiles/Pawn.js';
 import { EvoPawn } from '../Pieces/PawnFiles/EvoPawn.js';
 import { Piece } from '../Pieces/Piece.js';
 import { EvoKnight } from '../Pieces/KnightFiles/EvoKnight.js';
+import { EvoBishop } from '../Pieces/BishopFiles/EvoBishop.js';
+import { EvoRook } from '../Pieces/RookFiles/EvoRook.js';
+import { EvoQueen } from '../Pieces/QueenFiles/EvoQueen.js';
+import { EvoKing } from '../Pieces/KingFiles/EvoKing.js';
 
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
@@ -246,7 +250,7 @@ async function handleClick(row, col) {
                                 restartGame();
                             });
                         }
-
+                        saveGameState(board, null, turn, 'knightLevel');
                         handleClick(null, null);
                     });
 
@@ -297,6 +301,7 @@ async function handleClick(row, col) {
 
     }
 
+    await saveGameState(board, clickedPiece, turn, 'knightLevel');
     redraw();
 
     let gameStatus = gameOver(board);
@@ -338,7 +343,7 @@ function gameOver(board) {
     return null;
 }
 
-function restartGame() {
+async function restartGame() {
     initializeBoard();
     selectedTile = null;
     moves = [];
@@ -346,6 +351,7 @@ function restartGame() {
     lastMovedPiece = null;
     redraw();
     gameFinished = false;
+    await saveGameState(board, null, 'white', 'knightLevel');
 }
 
 function triggerReset(winner) {
@@ -357,6 +363,8 @@ function triggerReset(winner) {
 }
 
 async function blackBot() {
+
+    await saveGameState(board, null, 'black', 'knightLevel');
 
     let gameStatus = gameOver(board);
     if (gameStatus != null) {
@@ -436,6 +444,7 @@ async function blackBot() {
                     restartGame();
                 });
             }
+            await saveGameState(board, null, 'white', 'knightLevel');
             return;
         }
     }
@@ -487,6 +496,7 @@ async function blackBot() {
 
             board = output;
             lastMovedPiece = piece;
+            await saveGameState(board, null, 'white', 'knightLevel');
             return;
         }
 
@@ -503,6 +513,7 @@ async function blackBot() {
         if (iterations >= 1000) {
             // Pass move, no possible moves, avoid infinite loop;
             lastMovedPiece = null;
+            await saveGameState(board, null, 'white', 'knightLevel');
             return;
         }
     }
@@ -529,6 +540,7 @@ async function blackBot() {
     board = output;
 
     lastMovedPiece = rP;
+    await saveGameState(board, null, 'white', 'knightLevel');
     return;
 
 }
@@ -578,6 +590,80 @@ canvas.addEventListener('click', (e) => {
 
     handleClick(row, col);
 });
+
+async function saveGameState(board, selectedPiece, curTurn, level) {
+    const gameState = await updateGS(board, selectedPiece, curTurn, level);
+
+    await fetch('http://localhost:8001/updateState', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(gameState),
+    });
+}
+
+async function updateGS(board, selectedPiece, curTurn, level = "finalLevel") {
+    let boardJSON = null;
+    let selecPieceJSON = null
+    if (board !== null) {
+        boardJSON = Array(8).fill(null).map(() => Array(8).fill(null));
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const square = board[row][col];
+                if (square != null) {
+                    const pieceJSON = piece2JSON(square);
+                    boardJSON[row][col] = pieceJSON;
+                }
+            }
+        }
+    }
+    if (selectedPiece !== null) {
+        selecPieceJSON = piece2JSON(selectedPiece);
+    }
+
+    return {
+        "board": boardJSON,
+        "turn": curTurn,
+        "selectedPiece": selecPieceJSON,
+        "level": level
+    };
+}
+
+function piece2JSON(piece) {
+    if (!piece) {
+        return null;
+    }
+    let data = {
+        type: piece.constructor.name,  // e.g. "EvoKing", "Pawn", etc.
+        color: piece.color,
+        rank: piece.rank,
+        file: piece.file,
+        evod: piece.evod
+    };
+    if (piece instanceof Pawn) {
+        data.moved2 = piece.moved2;
+        data.onHomeSquare = piece.homeSquare; // boolean
+    }
+    else if (piece instanceof Rook) {
+        data.hasMoved = piece.hasMoved;
+    }
+    else if (piece instanceof King) {
+        data.hasMoved = piece.hasMoved;
+        if (piece instanceof EvoKing) {
+            data.remainingAllyCaptures = piece.allyCaptures;
+        }
+    }
+    else if (piece instanceof EvoQueen) {
+        const m = piece.minions || [];   // minions is undefined/null
+        let minionsJSON = [];
+        for (let minion of m) {
+            const pieceJson = piece2JSON(minion);
+            minionsJSON.push(pieceJson);
+        }
+        data.minions = minionsJSON;
+    }
+
+    return data;
+}
 
 initializeBoard();
 drawBoard();

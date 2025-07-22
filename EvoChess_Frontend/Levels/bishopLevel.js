@@ -10,6 +10,7 @@ import { EvoKnight } from '../Pieces/KnightFiles/EvoKnight.js';
 import { EvoBishop } from '../Pieces/BishopFiles/EvoBishop.js';
 import { EvoRook } from '../Pieces/RookFiles/EvoRook.js';
 import { EvoQueen } from '../Pieces/QueenFiles/EvoQueen.js';
+import { EvoKing } from '../Pieces/KingFiles/EvoKing.js';
 
 
 const canvas = document.getElementById('board');
@@ -20,9 +21,7 @@ const LIGHT = '#f0d9b5'; // Light tileLens
 const DARK = '#b58863'; // Dark tileLens
 const blackPieces = [];
 
-// Game pausers
 let gameFinished = false;
-let evoSelectionMade = false;
 
 let blackMove = false;
 let activePromotion = false; // True if promotion menu is present
@@ -35,9 +34,6 @@ let moves = [];
 let lastMovedPiece = null; // For tracking, i.e. the Goated en passant
 let whiteKing = null; // For bot tracking
 let blackKing = null; // Same as above
-
-let evo1 = null;
-let evo2 = null;
 
 function drawBoard() {
     // Base board
@@ -95,108 +91,44 @@ function initializeBoard() {
     board[0][4] = k;
     blackPieces.push(k);
 
-    let q = new EvoQueen('black', 0, 3);
-    board[0][3] = q;
-    blackPieces.push(q);
-
-    q = new EvoQueen('black', 1, 3);
-    board[1][3] = q;
-    blackPieces.push(q);
-
-    q = new EvoQueen('black', 1, 4);
-    board[1][4] = q;
-    blackPieces.push(q);
-
+    // X1
     for (let i = 0; i < 4; i++) {
-        if (i === 3) {
-            let p = new Pawn('black', i - 1, i);
-            board[i - 1][i] = p;
-            blackPieces.push(p);
-            let p2 = new Pawn('black', i - 1, 7 - i);
-            board[i - 1][7 - i] = p2;
-            blackPieces.push(p2);
-        }
-        else {
-            let p = new Pawn('black', 3 - i, i);
-            board[3 - i][i] = p;
-            blackPieces.push(p);
-            let p2 = new Pawn('black', 3 - i, 7 - i);
-            board[3 - i][7 - i] = p2;
-            blackPieces.push(p2);
-        }
+        const n = new EvoBishop('black', i, 0 + i);
+        const x = new EvoBishop('black', i, 3 - i);
+        board[i][0 + i] = n;
+        board[i][3 - i] = x;
+        blackPieces.push(n);
+        blackPieces.push(x);
     }
-
-    let b = new Bishop('black', 2, 0);
-    board[2][0] = b;
-    blackPieces.push(b);
-    b = new Bishop('black', 2, 7);
-    board[2][7] = b;
-    blackPieces.push(b);
-    b = new Bishop('black', 1, 0);
-    board[1][0] = b;
-    blackPieces.push(b);
-    b = new Bishop('black', 1, 7);
-    board[1][7] = b;
-    blackPieces.push(b);
-    b = new Bishop('black', 1, 1);
-    board[1][1] = b;
-    blackPieces.push(b);
-    b = new Bishop('black', 1, 6);
-    board[1][6] = b;
-    blackPieces.push(b);
-
-    for (let i = 0; i < 3; i++) {
-        let r = new Rook('black', 0, i);
-        board[0][i] = r;
-        blackPieces.push(r);
-        r = new Rook('black', 0, 7 - i);
-        board[0][7 - i] = r;
-        blackPieces.push(r);
+    let x = new EvoBishop('black', 0, 7);
+    board[0][7] = x;
+    blackPieces.push(x);
+    for (let i = 1; i < 4; i++) {
+        const n = new EvoBishop('black', i, 4 + i);
+        const x = new EvoBishop('black', i, 7 - i);
+        board[i][4 + i] = n;
+        board[i][7 - i] = x;
+        blackPieces.push(n);
+        blackPieces.push(x);
     }
-
 
     // White pieces
-    if (evo1 === 'Rook' || evo2 === 'Rook') {
-        board[7][0] = new EvoRook('white', 7, 0);
-        board[7][7] = new EvoRook('white', 7, 7);
-    }
-    else {
-        board[7][0] = new Rook('white', 7, 0);
-        board[7][7] = new Rook('white', 7, 7);
-    }
-    if (evo1 === 'Knight' || evo2 === 'Knight') {
-        board[7][1] = new EvoKnight('white', 7, 1);
-        board[7][6] = new EvoKnight('white', 7, 6);
-    }
-    else {
-        board[7][1] = new Knight('white', 7, 1);
-        board[7][6] = new Knight('white', 7, 6);
-    }
-    if (evo1 === 'Bishop' || evo2 === 'Bishop') {
-        board[7][2] = new EvoBishop('white', 7, 2);
-        board[7][5] = new EvoBishop('white', 7, 5);
-    }
-    else {
-        board[7][2] = new Bishop('white', 7, 2);
-        board[7][5] = new Bishop('white', 7, 5);
-    }
-
+    board[7][0] = new Rook('white', 7, 0);
+    board[7][7] = new Rook('white', 7, 7);
+    board[7][1] = new EvoKnight('white', 7, 1);
+    board[7][6] = new EvoKnight('white', 7, 6);
+    board[7][2] = new Bishop('white', 7, 2);
+    board[7][5] = new Bishop('white', 7, 5);
     board[7][3] = new Queen('white', 7, 3);
     whiteKing = new King('white', 7, 4);
     board[7][4] = whiteKing;
-    if (evo1 === 'Pawn' || evo2 === 'Pawn') {
-        for (let i = 0; i < 8; i++) {
-            board[6][i] = new EvoPawn('white', 6, i);
-
-        }
-    }
-    else {
-        for (let i = 0; i < 8; i++) {
-            board[6][i] = new Pawn('white', 6, i);
-        }
+    for (let i = 0; i < 8; i++) {
+        board[6][i] = new EvoPawn('white', 6, i);
     }
 
-    getMinions(board);
+    board[5][2] = new EvoPawn('white', 5, 2);
+    board[5][4] = new EvoPawn('white', 5, 4);
+    board[5][6] = new EvoPawn('white', 5, 6);
 }
 
 function drawPieces() {
@@ -249,7 +181,7 @@ function redraw() {
 
 async function handleClick(row, col) {
 
-    if (gameFinished || !evoSelectionMade) {
+    if (gameFinished) {
         return;
     }
 
@@ -280,25 +212,20 @@ async function handleClick(row, col) {
             if (movedPiece instanceof Pawn) {
                 let output = movedPiece.movePiece(board, to, from, move);
                 if (output === "PROMOTE") {
-
                     showPromotionMenu(choice => {
-                        let victim = board[to.row][to.col];
                         board[to.row][to.col] = createPromotedPiece(choice, movedPiece.color, to.row, to.col);
                         board[from.row][from.col] = null;
-                        if (victim != null && victim.isEvoRook) {
-                            board = victim.boom(board);
-                        }
 
                         // Update state
                         lastMovedPiece = movedPiece;
                         moves = [];
                         selectedTile = null;
-                        getMinions(board);
 
                         if (!blackMove) {
                             turn = 'black';
                             blackMove = true;
                         }
+
                         redraw();
 
                         let gameStatus = gameOver(board);
@@ -310,24 +237,20 @@ async function handleClick(row, col) {
                                 restartGame();
                             });
                         }
-
+                        saveGameState(board, null, turn, 'bishopLevel');
                         handleClick(null, null);
                     });
 
                     return; // prevents further logic from running until promotion completes
                 } else {
                     board = output;
-                    getMinions(board);
                 }
             }
             else {
                 board = movedPiece.movePiece(board, to, from);
-                getMinions(board);
             }
             lastMovedPiece = movedPiece; // Update LMP
             let gameStatus = gameOver(board);
-
-
             if (gameStatus != null) {
                 gameFinished = true;
                 triggerReset(gameStatus);
@@ -351,7 +274,6 @@ async function handleClick(row, col) {
             // Switch turns
 
         }
-
         moves = []; // Clear possible moves
         selectedTile = null; // Clear selection
     } if (clickedPiece != null && originalTurn === clickedPiece.color) {
@@ -367,6 +289,7 @@ async function handleClick(row, col) {
     }
 
     redraw();
+    await saveGameState(board, clickedPiece, turn, 'bishopLevel');
 
     let gameStatus = gameOver(board);
     if (gameStatus != null) {
@@ -408,20 +331,6 @@ function gameOver(board) {
 }
 
 async function restartGame() {
-    evo1 = null;
-    evo2 = null;
-
-    const e1 = document.getElementById('evo1');
-    const e2 = document.getElementById('evo2');
-
-    e1.selectedIndex = 0;
-    e2.selectedIndex = 0;
-    e1.disabled = false;
-    e2.disabled = false;
-
-    const { selection1, selection2 } = await processEvoSelections();
-    evo1 = selection1;
-    evo2 = selection2;
     initializeBoard();
     selectedTile = null;
     moves = [];
@@ -429,6 +338,7 @@ async function restartGame() {
     lastMovedPiece = null;
     redraw();
     gameFinished = false;
+    await saveGameState(board, null, 'white', 'bishopLevel');
 }
 
 function triggerReset(winner) {
@@ -440,6 +350,8 @@ function triggerReset(winner) {
 }
 
 async function blackBot() {
+
+    await saveGameState(board, null, 'black', 'bishopLevel');
 
     let gameStatus = gameOver(board);
     if (gameStatus != null) {
@@ -461,6 +373,7 @@ async function blackBot() {
             blackPieces.splice(i, 1);
         }
     }
+
     await delay(500);
 
     let opps = attackedPiece(board, whiteKing);
@@ -503,14 +416,11 @@ async function blackBot() {
             } else if (output !== 'PROMOTE') {
                 board = output;
             }
-            // For EvoKing, if output was 'PROMOTE', we skip special handling since the board is already correctly set
-
             const spawned = board[pr][pc];
             if (spawned && spawned.color === 'black') {
                 blackPieces.push(spawned);
             }
             selectedTile = null;
-            getMinions(board);
 
             let gameStatus = gameOver(board);
             if (gameStatus != null) {
@@ -521,6 +431,7 @@ async function blackBot() {
                     restartGame();
                 });
             }
+            await saveGameState(board, null, 'white', 'bishopLevel');
             return;
         }
     }
@@ -529,67 +440,42 @@ async function blackBot() {
     if (opp2) {
         // Black king in check
         if (opp2.length === 1) {
-            // Capture sole attacking piece
             let theOpp = opp2[0];
             for (let i = 0; i < blackPieces.length; i++) {
                 let bp = blackPieces[i];
-                if (bp === blackKing || bp.isPinnedPiece(board)) {
+                if (bp === blackKing) {
                     continue;
                 }
                 const t = {};
 
                 t[`${theOpp.rank},${theOpp.file}`] = true;
-                if (bp.isPossibleMove(board, bp.rank, bp.file, t, blackKing)) {
+                if (bp.isPossibleMove(board, bp.rank, bp.file, t)) {
                     selectedTile = { row: bp.rank, col: bp.file };
                     redraw();
                     await delay(300);
-                    const pr = bp.rank;
-                    const pc = bp.file;
-                    const output = bp.movePiece(board, { row: theOpp.rank, col: theOpp.file }, selectedTile);
-
-                    if (output === 'PROMOTE') {
-                        board[pr][pc] = null;
-                        let q = new Queen('black', theOpp.rank, theOpp.file);
-                        board[theOpp.rank][theOpp.file] = q;
-                        blackPieces.push(q);
+                    bp.movePiece(board, { row: theOpp.rank, col: theOpp.file }, selectedTile);
+                    const to = board[theOpp.rank][theOpp.file];
+                    if (to !== null && to.color === 'black' && to !== bp) {
+                        blackPieces.push(to);
                     }
-                    else {
-                        board = output;
-                        const to = board[theOpp.rank][theOpp.file];
-                        if (to !== null && to.color === 'black' && to !== bp) {
-                            blackPieces.push(to);
-                        }
-                        const spawned = board[pr][pc];
-                        if (spawned && spawned.color === 'black') {
-                            blackPieces.push(spawned);
-                        }
-                    }
-
                     selectedTile = null;
-                    getMinions(board);
+                    await saveGameState(board, null, 'white', 'bishopLevel');
                     return;
                 }
             }
         }
         let ms = blackKing.getMoves(board, blackKing.rank, blackKing.file);
-        // Move king
         for (let i = 0; i < ms.length; i++) {
             const m = ms[i];
 
-            if (!(attackedPiece(board, blackKing, m.row, m.col, 'white'))) {
+            if (!(attackedPiece(board, null, m.row, m.col, 'white'))) {
                 // Safe square to move
                 selectedTile = { row: blackKing.rank, col: blackKing.file };
                 redraw();
                 await delay(300);
-                const pr = blackKing.rank;
-                const pc = blackKing.file;
                 selectedTile = null;
                 blackKing.movePiece(board, m, { row: blackKing.rank, col: blackKing.file });
-                const spawned = board[pr][pc];
-                if (spawned && spawned.color === 'black') {
-                    blackPieces.push(spawned);
-                }
-                getMinions(board);
+                await saveGameState(board, null, 'white', 'bishopLevel');
                 return;
             }
 
@@ -600,9 +486,6 @@ async function blackBot() {
 
     for (let index of randomOrder) {
         const piece = blackPieces[index];
-        if (piece.isPinnedPiece(board)) {
-            continue;
-        }
         const c = piece.captures(board, piece.rank, piece.file); // Capture list
         if (c.length > 0) {
             // Has a capturable target
@@ -628,32 +511,14 @@ async function blackBot() {
 
             output = piece.movePiece(board, to, from, randomCapture);
 
-            if (output === 'PROMOTE') {
-                board[pr][pc] = null;
-                let q = new Queen('black', rCr, rCc);
-                board[rCr][rCc] = q;
-                blackPieces.push(q);
+            const to2 = board[rCr][rCc];
+            if (to2 !== null && to2.color === 'black' && to2 !== piece) {
+                blackPieces.push(to2);
             }
 
-            else {
-
-                const to2 = board[rCr][rCc];
-                if (to2 !== null && to2.color === 'black' && to2 !== piece) {
-                    blackPieces.push(to2);
-                }
-
-                board = output;
-
-
-                const spawned = board[pr][pc];
-                if (spawned && spawned.color === 'black') {
-                    blackPieces.push(spawned);
-                }
-
-            }
-
+            board = output;
             lastMovedPiece = piece;
-            getMinions(board);
+            await saveGameState(board, null, 'white', 'bishopLevel');
             return;
         }
 
@@ -666,55 +531,17 @@ async function blackBot() {
     let shmoves = [];
     for (let index of rO2) {
         rP = blackPieces[index];
-        if (rP.isPinnedPiece(board)) {
-            continue;
-        }
         shmoves = rP.getMoves(board, rP.rank, rP.file); // all moves of randomPiece
         if (shmoves.length > 0) {
             break;
         }
     }
     if (shmoves.length <= 0) {
-        // No move found, pass
         lastMovedPiece = null;
-        // No need to getMinions, no move made
+        await saveGameState(board, null, 'white', 'bishopLevel');
         return;
     }
-
-    let rM = null;
-    let broken = false;
-
-    if (rP === blackKing) {
-        let rO3 = shuffledIndices(shmoves.length - 1);
-        for (let index of rO3) {
-            rM = shmoves[index];
-            if (!attackedPiece(board, rP, rM.row, rM.col, 'white')) {
-                // safe square to move
-                broken = true;
-                break;
-            }
-        }
-    }
-    else {
-        rM = shmoves[Math.floor(Math.random() * shmoves.length)]; // randomMove
-    }
-
-    if (rP === blackKing && !broken) {
-        for (let piece of blackPieces) {
-            if (piece != blackKing && piece.isPinnedPiece(board) === false) {
-                let shm2 = piece.getMoves(board, piece.rank, piece.file);
-                if (shm2.length > 0) {
-                    rP = piece;
-                    rM = shm2[Math.floor(Math.random() * shm2.length)];
-                    break;
-                }
-
-            }
-        }
-    }
-
-    // If all pieces pinned, no other pieces left, no other legal moves,
-    // play the chosen king move (that may move into check) from earlier
+    let rM = shmoves[Math.floor(Math.random() * shmoves.length)]; // randomMove
 
     const pr = rP.rank; // Piece row
     const pc = rP.file; // Piece col
@@ -734,20 +561,10 @@ async function blackBot() {
     const to = { row: mr, col: mc };
     let output = rP.movePiece(board, to, from, rM);
 
-    if (output === 'PROMOTE') {
-        board[pr][pc] = null;
-        let q = new Queen('black', mr, mc);
-        board[mr][mc] = q;
-        blackPieces.push(q);
-    }
-    else {
-        board = output;
-    }
+    board = output;
 
     lastMovedPiece = rP;
-
-    getMinions(board);
-
+    await saveGameState(board, null, 'white', 'bishopLevel');
     return;
 
 }
@@ -765,10 +582,10 @@ export function setup() {
 export function startGame() {
 
     document.getElementById("levelMessage").textContent =
-        `Evo Queen: Active Ability: Omniscient Seer.   
-        Scope is extended by allied Bishops and Rooks,  
+        `Evo Bishop: Active Ability: Ricochet.    
+        Scope is extended to bounce 90 degrees on walls.   
         After capturing a piece in the extended scope,  
-        this piece transforms to Queen.`;
+        this piece transforms to Bishop.` ;
 
     canvas.onclick = null; // reset
     canvas.onclick = (e) => {
@@ -799,22 +616,20 @@ canvas.addEventListener('click', (e) => {
     handleClick(row, col);
 });
 
-function attackedPiece(board, piece = null, row = null, col = null, color = null) {
+function attackedPiece(board, piece, row = null, col = null, color = null) {
 
     let opps = []
 
     let r, c, otherColor = null;
-    if (row !== null && col !== null && color !== null) {
-        // provided target square
-        r = row;
-        c = col;
-        otherColor = color;
-    }
-    else {
-        // Use the pieces square
+    if (piece) {
         r = piece.rank;
         c = piece.file;
         otherColor = piece.color === 'white' ? 'black' : 'white';
+    }
+    else {
+        r = row;
+        c = col;
+        otherColor = color;
     }
     for (let ro = 0; ro < board.length; ro++) {
         for (let co = 0; co < board[0].length; co++) {
@@ -823,7 +638,7 @@ function attackedPiece(board, piece = null, row = null, col = null, color = null
             if (obj instanceof Piece && obj.color === otherColor) {
                 const checkedTiles = {};
                 checkedTiles[`${r},${c}`] = true;
-                if (obj.isPossibleMove(board, obj.rank, obj.file, checkedTiles, piece)) {
+                if (obj.isPossibleMove(board, obj.rank, obj.file, checkedTiles)) {
                     opps.push(obj);
                 }
             }
@@ -849,86 +664,81 @@ function shuffledIndices(n) {
     return indices;
 }
 
-async function processEvoSelections() {
-    evoSelectionMade = false;
+async function saveGameState(board, selectedPiece, curTurn, level) {
+    const gameState = await updateGS(board, selectedPiece, curTurn, level);
 
-    return new Promise((resolve) => {
-        function trySetup() {
-            const e1 = document.getElementById('evo1');
-            const e2 = document.getElementById('evo2');
-            if (e1 && e2) {
-                setupListeners(e1, e2, resolve);
-                return true;
-            }
-            return false;
-        }
-
-        if (!trySetup()) {
-            const observer = new MutationObserver(() => {
-                if (trySetup()) {
-                    observer.disconnect();
-                }
-            });
-            observer.observe(document.body, { childList: true, subtree: true });
-        }
+    await fetch('http://localhost:8001/updateState', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(gameState),
     });
 }
 
-function setupListeners(e1, e2, resolve) {
-    function tryResolve() {
-        if (e1.value && e2.value) {
-            e1.disabled = true;
-            e2.disabled = true;
-            evoSelectionMade = true;
-            resolve({ selection1: e1.value, selection2: e2.value });
-        }
-    }
-
-    e1.addEventListener('change', tryResolve);
-    e2.addEventListener('change', tryResolve);
-}
-
-async function firstStart() {
-    const { selection1, selection2 } = await processEvoSelections();
-    evo1 = selection1;
-    evo2 = selection2;
-    initializeBoard();
-    drawBoard();
-    drawPieces();
-}
-
-function getMinions(board) {
-
-    const white = [];
-    const black = [];
-
-    for (const row of board) {
-        for (const piece of row) {
-            if (piece !== null && (piece instanceof Bishop || piece instanceof Rook)) {
-                if (piece.color === 'white') {
-                    white.push(piece);
-                }
-                else {
-                    black.push(piece);
+async function updateGS(board, selectedPiece, curTurn, level = "finalLevel") {
+    let boardJSON = null;
+    let selecPieceJSON = null
+    if (board !== null) {
+        boardJSON = Array(8).fill(null).map(() => Array(8).fill(null));
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const square = board[row][col];
+                if (square != null) {
+                    const pieceJSON = piece2JSON(square);
+                    boardJSON[row][col] = pieceJSON;
                 }
             }
         }
     }
-
-    for (const row of board) {
-        for (const piece of row) {
-            if (piece !== null && piece instanceof EvoQueen) {
-                if (piece.color === 'white') {
-                    piece.minions = white;
-                }
-                else {
-                    piece.minions = black;
-                }
-            }
-        }
+    if (selectedPiece !== null) {
+        selecPieceJSON = piece2JSON(selectedPiece);
     }
-    return board;
+
+    return {
+        "board": boardJSON,
+        "turn": curTurn,
+        "selectedPiece": selecPieceJSON,
+        "level": level
+    };
 }
 
-firstStart();
+function piece2JSON(piece) {
+    if (!piece) {
+        return null;
+    }
+    let data = {
+        type: piece.constructor.name,  // e.g. "EvoKing", "Pawn", etc.
+        color: piece.color,
+        rank: piece.rank,
+        file: piece.file,
+        evod: piece.evod
+    };
+    if (piece instanceof Pawn) {
+        data.moved2 = piece.moved2;
+        data.onHomeSquare = piece.homeSquare; // boolean
+    }
+    else if (piece instanceof Rook) {
+        data.hasMoved = piece.hasMoved;
+    }
+    else if (piece instanceof King) {
+        data.hasMoved = piece.hasMoved;
+        if (piece instanceof EvoKing) {
+            data.remainingAllyCaptures = piece.allyCaptures;
+        }
+    }
+    else if (piece instanceof EvoQueen) {
+        const m = piece.minions || [];   // minions is undefined/null
+        let minionsJSON = [];
+        for (let minion of m) {
+            const pieceJson = piece2JSON(minion);
+            minionsJSON.push(pieceJson);
+        }
+        data.minions = minionsJSON;
+    }
 
+    return data;
+}
+
+
+initializeBoard();
+drawBoard();
+drawPieces();

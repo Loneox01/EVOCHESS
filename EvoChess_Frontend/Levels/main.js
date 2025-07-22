@@ -5,6 +5,12 @@ import { Queen } from '../Pieces/QueenFiles/Queen.js';
 import { King } from '../Pieces/KingFiles/King.js';
 import { Pawn } from '../Pieces/PawnFiles/Pawn.js';
 import { EvoPawn } from '../Pieces/PawnFiles/EvoPawn.js';
+import { Piece } from '../Pieces/Piece.js';
+import { EvoKnight } from '../Pieces/KnightFiles/EvoKnight.js';
+import { EvoBishop } from '../Pieces/BishopFiles/EvoBishop.js';
+import { EvoRook } from '../Pieces/RookFiles/EvoRook.js';
+import { EvoQueen } from '../Pieces/QueenFiles/EvoQueen.js';
+import { EvoKing } from '../Pieces/KingFiles/EvoKing.js';
 
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
@@ -12,13 +18,9 @@ const tileLen = canvas.width / 8;
 
 const LIGHT = '#f0d9b5'; // Light tileLens
 const DARK = '#b58863'; // Dark tileLens
-const blackPieces = Array(20).fill(null);
 
-let blackMove = false;
-let activePromotion = false; // True if promotion menu is present
 let turn = "white"; // Turn tracker, either "white" or "black"
-
-let gameFinished = false;
+let activePromotion = false;
 
 // Initial setup of the board
 let board = Array(8).fill(null).map(() => Array(8).fill(null));
@@ -77,30 +79,16 @@ function initializeBoard() {
     // Default board
     board = Array(8).fill(null).map(() => Array(8).fill(null));
 
-    const k = new King('black', 0, 4);
-    board[0][4] = k;
-    blackPieces[4] = k;
+    board[0][0] = new Rook('black');
+    board[0][7] = new Rook('black');
+    board[0][1] = new Knight('black');
+    board[0][6] = new Knight('black');
+    board[0][2] = new Bishop('black');
+    board[0][5] = new Bishop('black');
+    board[0][3] = new Queen('black', 0, 3);
+    board[0][4] = new King('black', 0, 4);
     for (let i = 0; i < 8; i++) {
-        if (i != 4) {
-            const p = new EvoPawn('black', 0, i);
-            board[0][i] = p;
-            blackPieces[i] = p;
-        }
-    }
-    for (let i = 1; i < 7; i++) {
-        const p = new EvoPawn('black', 1, i);
-        board[1][i] = p;
-        blackPieces[8 + i - 1] = p;
-    }
-    for (let i = 2; i < 6; i++) {
-        const p = new EvoPawn('black', 2, i);
-        board[2][i] = p;
-        blackPieces[14 + i - 2] = p;
-    }
-    for (let i = 3; i < 5; i++) {
-        const p = new EvoPawn('black', 3, i);
-        board[3][i] = p;
-        blackPieces[18 + i - 3] = p;
+        board[1][i] = new Pawn('black');
     }
 
     board[7][0] = new Rook('white');
@@ -110,7 +98,7 @@ function initializeBoard() {
     board[7][2] = new Bishop('white');
     board[7][5] = new Bishop('white');
     board[7][3] = new Queen('white', 7, 3);
-    board[7][4] = new King('white');
+    board[7][4] = new King('white', 7, 4);
     for (let i = 0; i < 8; i++) {
         board[6][i] = new Pawn('white');
     }
@@ -130,18 +118,12 @@ function drawPieces() {
                 const y = row * tileLen + tileLen / 2; // y Location
                 ctx.fillStyle = (piece.color === 'white' ? 'white' : 'black');
                 ctx.fillText(symbol, x, y);
-
-                if (piece.evod) {
-                    ctx.fillStyle = 'rgba(90, 0, 150, 0.25)'; // Highlight
-                    ctx.fillRect(col * tileLen, row * tileLen, tileLen, tileLen);
-                }
             }
 
             if (selectedTile && selectedTile.row === row && selectedTile.col === col) {
                 ctx.fillStyle = 'rgba(255, 255, 0, 0.4)'; // Highlight
                 ctx.fillRect(col * tileLen, row * tileLen, tileLen, tileLen);
             }
-
         }
     }
 }
@@ -165,22 +147,8 @@ function redraw() {
 }
 
 async function handleClick(row, col) {
-
-    if (gameFinished) {
+    if (activePromotion) {
         return;
-    }
-    if (activePromotion || blackMove || row === col === null) {
-        if (turn !== 'black') {
-            return;
-        }
-        else {
-            turn = "white";
-            await blackBot();
-            blackMove = false;
-            redraw();
-            return;
-        }
-
     }
     const clickedPiece = board[row][col];
     const originalTurn = turn; // Used later, niche but necessary
@@ -202,27 +170,21 @@ async function handleClick(row, col) {
 
                         // Update state
                         lastMovedPiece = movedPiece;
+                        turn = (turn === "white") ? "black" : "white";
                         moves = [];
                         selectedTile = null;
 
                         redraw();
-
-                        if (!blackMove) {
-                            turn = 'black';
-                            blackMove = true;
-                        }
+                        saveGameState(board, null, turn, 'main');
 
                         let gameStatus = gameOver(board);
                         if (gameStatus != null) {
-                            gameFinished = true;
                             triggerReset(gameStatus);
                             document.getElementById('gameOverOverlay').addEventListener('click', () => {
                                 document.getElementById('gameOverOverlay').style.display = 'none';
                                 restartGame();
                             });
                         }
-
-                        handleClick(null, null);
                     });
 
                     return; // prevents further logic from running until promotion completes
@@ -232,28 +194,12 @@ async function handleClick(row, col) {
             }
             else {
                 board = movedPiece.movePiece(board, to, from);
-                let gameStatus = gameOver(board);
-                if (gameStatus != null) {
-                    gameFinished = true;
-                    triggerReset(gameStatus);
-                    document.getElementById('gameOverOverlay').addEventListener('click', () => {
-                        document.getElementById('gameOverOverlay').style.display = 'none';
-                        restartGame();
-                    });
-                }
-
             }
             lastMovedPiece = movedPiece; // Update LMP
             if (turn === "white") {
-                moves = []; // Clear possible moves
-                selectedTile = null; // Clear selection
-                redraw();
-                blackMove = true;
-                await blackBot();
-                blackMove = false;
+                turn = "black";
             }
             else {
-                console.log('Move error');
                 turn = "white";
             }
             // Switch turns
@@ -274,10 +220,10 @@ async function handleClick(row, col) {
     }
 
     redraw();
+    await saveGameState(board, clickedPiece, turn, 'main');
 
     let gameStatus = gameOver(board);
     if (gameStatus != null) {
-        gameFinished = true;
         triggerReset(gameStatus);
         document.getElementById('gameOverOverlay').addEventListener('click', () => {
             document.getElementById('gameOverOverlay').style.display = 'none';
@@ -314,14 +260,14 @@ function gameOver(board) {
     return null;
 }
 
-function restartGame() {
+async function restartGame() {
     initializeBoard();
     selectedTile = null;
     moves = [];
     turn = "white";
     lastMovedPiece = null;
     redraw();
-    gameFinished = false;
+    await saveGameState(board, null, 'white', 'main');
 }
 
 function triggerReset(winner) {
@@ -332,131 +278,6 @@ function triggerReset(winner) {
     overlay.style.display = 'flex';
 }
 
-async function blackBot() {
-
-    if (gameFinished) {
-        return;
-    }
-
-    // Check game over
-
-    let gameStatus = gameOver(board);
-    if (gameStatus != null) {
-        gameFinished = true;
-        triggerReset(gameStatus);
-        document.getElementById('gameOverOverlay').addEventListener('click', () => {
-            document.getElementById('gameOverOverlay').style.display = 'none';
-            restartGame();
-            return; // shouldn't get here.
-        });
-    }
-    // Remove taken/removed pieces from list
-
-
-    for (let i = blackPieces.length - 1; i >= 0; i--) {
-        let piece = blackPieces[i];
-
-        if (board[piece.rank][piece.file] !== piece) {
-            blackPieces.splice(i, 1);
-        }
-    }
-
-    await delay(500);
-
-    for (let piece of blackPieces) {
-
-        const c = piece.captures(board, piece.rank, piece.file, lastMovedPiece); // Capture list
-        if (c.length > 0) {
-            // Has a capturable target
-            const pr = piece.rank;
-            const pc = piece.file;
-
-            // Highlight moved piece, wait, unhighlight
-            selectedTile = { row: pr, col: pc };
-            redraw();
-
-            await delay(300);
-
-            selectedTile = null;
-            redraw();
-
-            const randomCapture = c[Math.floor(Math.random() * c.length)];
-            const rCr = randomCapture.row;
-            const rCc = randomCapture.col;
-            const to = { row: rCr, col: rCc };
-
-            const from = { row: pr, col: pc };
-            let output = null;
-
-            output = piece.movePiece(board, to, from, randomCapture);
-
-            if (output === 'PROMOTE') {
-                board[pr][pc] = null;
-                let q = new Queen('black', randomCapture.row, randomCapture.col);
-                board[randomCapture.row][randomCapture.col] = q;
-                blackPieces.push(q);
-            }
-            else {
-                board = output;
-            }
-            lastMovedPiece = piece;
-            return;
-        }
-
-    }
-
-    // Left to push (Or move queen if applicable)
-    let shmoves = []
-    let rP = null;
-    let iterations = 0;
-    while (shmoves.length <= 0) {
-        rP = blackPieces[Math.floor(Math.random() * blackPieces.length)]; // randomPiece
-        shmoves = rP.getMoves(board, rP.rank, rP.file); // all moves of randomPiece
-        iterations++;
-        if (iterations >= 1000) {
-            lastMovedPiece = null;
-            return;
-        }
-    }
-    let rM = shmoves[Math.floor(Math.random() * shmoves.length)]; // randomMove
-
-    const pr = rP.rank; // Piece row
-    const pc = rP.file; // Piece col
-
-    // Highlight moved piece, wait, unhighlight
-    selectedTile = { row: pr, col: pc };
-    redraw();
-
-    await delay(300);
-
-    selectedTile = null;
-    redraw();
-
-    const from = { row: pr, col: pc };
-    const mr = rM.row; // Move row
-    const mc = rM.col; // Move col
-    const to = { row: mr, col: mc };
-    let output = rP.movePiece(board, to, from, rM);
-
-    if (output === 'PROMOTE') {
-        board[pr][pc] = null;
-        let q = new Queen('black', mr, mc);
-        board[mr][mc] = q;
-        blackPieces.push(q);
-    }
-    else {
-        board = output;
-    }
-
-    lastMovedPiece = rP;
-    return;
-
-}
-
-function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 export function setup() {
     initializeBoard();
     drawBoard();
@@ -465,15 +286,9 @@ export function setup() {
 
 export function startGame() {
 
-    document.getElementById("levelMessage").textContent =
-        `Evo Pawn: Active Ability: En Croissant (left, right, forward).    
-        Can take adjacent opposing piece if space past it is a free space.   
-        Move 2 spaces, capture opposing piece in intermediary square.   
-        Pawns that En Croissant vertically are subject to En Passant.` ;
-
+    const canvas = document.getElementById("board");
     canvas.onclick = null; // reset
     canvas.onclick = (e) => {
-
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
@@ -485,11 +300,18 @@ export function startGame() {
     }; // set
 
     restartGame();
+
+    return {
+        redraw,
+        createPromotedPiece
+    }; // For loader.js
 }
+
+
 
 canvas.addEventListener('click', (e) => {
 
-    // interactive
+    // add
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -499,6 +321,80 @@ canvas.addEventListener('click', (e) => {
 
     handleClick(row, col);
 });
+
+async function saveGameState(board, selectedPiece, curTurn, level) {
+    const gameState = await updateGS(board, selectedPiece, curTurn, level);
+
+    await fetch('http://localhost:8001/updateState', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(gameState),
+    });
+}
+
+async function updateGS(board, selectedPiece, curTurn, level = "finalLevel") {
+    let boardJSON = null;
+    let selecPieceJSON = null
+    if (board !== null) {
+        boardJSON = Array(8).fill(null).map(() => Array(8).fill(null));
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const square = board[row][col];
+                if (square != null) {
+                    const pieceJSON = piece2JSON(square);
+                    boardJSON[row][col] = pieceJSON;
+                }
+            }
+        }
+    }
+    if (selectedPiece !== null) {
+        selecPieceJSON = piece2JSON(selectedPiece);
+    }
+
+    return {
+        "board": boardJSON,
+        "turn": curTurn,
+        "selectedPiece": selecPieceJSON,
+        "level": level
+    };
+}
+
+function piece2JSON(piece) {
+    if (!piece) {
+        return null;
+    }
+    let data = {
+        type: piece.constructor.name,  // e.g. "EvoKing", "Pawn", etc.
+        color: piece.color,
+        rank: piece.rank,
+        file: piece.file,
+        evod: piece.evod
+    };
+    if (piece instanceof Pawn) {
+        data.moved2 = piece.moved2;
+        data.onHomeSquare = piece.homeSquare; // boolean
+    }
+    else if (piece instanceof Rook) {
+        data.hasMoved = piece.hasMoved;
+    }
+    else if (piece instanceof King) {
+        data.hasMoved = piece.hasMoved;
+        if (piece instanceof EvoKing) {
+            data.remainingAllyCaptures = piece.allyCaptures;
+        }
+    }
+    else if (piece instanceof EvoQueen) {
+        const m = piece.minions || [];   // minions is undefined/null
+        let minionsJSON = [];
+        for (let minion of m) {
+            const pieceJson = piece2JSON(minion);
+            minionsJSON.push(pieceJson);
+        }
+        data.minions = minionsJSON;
+    }
+
+    return data;
+}
 
 initializeBoard();
 drawBoard();

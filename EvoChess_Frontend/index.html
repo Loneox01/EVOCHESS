@@ -42,7 +42,6 @@
                 <div id="wrapper">
                     <canvas id="board" width="480" height="480"></canvas>
 
-                    <!-- Game Over Overlay -->
                     <div id="gameOverOverlay" style="display: none;">
                         <h1 id="winnerText">Game Over</h1>
                         <p>Click to play again</p>
@@ -75,7 +74,6 @@
             </div>
         </div>
 
-        <!-- Promotion Menu -->
         <select id="promotionMenu" style="display: none;">
             <option value="" disabled selected>Select a piece</option>
             <option value="Queen">Queen</option>
@@ -107,12 +105,14 @@
                         const isEvo = button.dataset.evo === "true";
 
                         if (isEvo) {
+                            const levelPath = button.getAttribute("onclick") || "";
+                            const isEVOC = levelPath.includes("/Levels/PVPevoc");
+
                             evoSelectionBox.style.display = "block";
-                            evoSelectionBlackBox.style.display = isPVP ? "block" : "none";
+                            evoSelectionBlackBox.style.display = isEVOC ? "block" : "none";
 
                             const options = button.dataset.evoOptions.split(',');
 
-                            // Populate white evo menu
                             evo1Select.innerHTML = `<option value="" disabled selected>Select Evo 1</option>`;
                             options.forEach(opt => {
                                 const option = document.createElement("option");
@@ -136,7 +136,6 @@
 
                             evo2Select.innerHTML = `<option value="" disabled selected>Select Evo 2</option>`;
 
-                            // Populate black evo menu (PVP only)
                             if (isPVP) {
                                 evo1BlackSelect.innerHTML = `<option value="" disabled selected>Select Evo 1</option>`;
                                 options.forEach(opt => {
@@ -176,8 +175,53 @@
             });
         </script>
 
-
         <script type="module" src="loader.js"></script>
+
+        <div id="chat-container">
+            <div id="chat-header">EvoChess Assistant</div>
+            <div id="chat-messages"></div>
+            <textarea id="chat-input" placeholder="Ask about EvoChess..."></textarea>
+            <button id="chat-send">Send</button>
+        </div>
+
+        <script>
+            const chatContainer = document.getElementById('chat-container');
+            const chatMessages = document.getElementById('chat-messages');
+            const chatInput = document.getElementById('chat-input');
+            const chatSend = document.getElementById('chat-send');
+
+            chatSend.addEventListener('click', async () => {
+                const userMessage = chatInput.value.trim();
+                if (!userMessage) return;
+
+                appendMessage('User', userMessage);
+                chatInput.value = '';
+                chatSend.disabled = true;
+
+                try {
+                    const response = await fetch('http://localhost:8001/ask', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: userMessage })
+                    });
+
+                    const data = await response.json();
+                    appendMessage('EvoMartin', data.response);
+                } catch (error) {
+                    appendMessage('System', 'Error communicating with assistant.');
+                } finally {
+                    chatSend.disabled = false;
+                }
+            });
+
+            function appendMessage(sender, message) {
+                const messageElem = document.createElement('div');
+                messageElem.className = 'message';
+                messageElem.innerHTML = `<strong>${sender}:</strong> ${message}`;
+                chatMessages.appendChild(messageElem);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        </script>
     </div>
 </body>
 

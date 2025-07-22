@@ -5,8 +5,13 @@ import { Queen } from '../Pieces/QueenFiles/Queen.js';
 import { King } from '../Pieces/KingFiles/King.js';
 import { Pawn } from '../Pieces/PawnFiles/Pawn.js';
 import { EvoPawn } from '../Pieces/PawnFiles/EvoPawn.js';
+import { Piece } from '../Pieces/Piece.js';
 import { EvoKnight } from '../Pieces/KnightFiles/EvoKnight.js';
 import { EvoBishop } from '../Pieces/BishopFiles/EvoBishop.js';
+import { EvoRook } from '../Pieces/RookFiles/EvoRook.js';
+import { EvoQueen } from '../Pieces/QueenFiles/EvoQueen.js';
+import { EvoKing } from '../Pieces/KingFiles/EvoKing.js';
+
 
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
@@ -14,6 +19,10 @@ const tileLen = canvas.width / 8;
 
 const LIGHT = '#f0d9b5'; // Light tileLens
 const DARK = '#b58863'; // Dark tileLens
+
+let evoSelectionMade = false;
+let evo1 = null;
+let evo2 = null;
 
 let activePromotion = false; // True if promotion menu is present
 let turn = "white"; // Turn tracker, either "white" or "black"
@@ -75,32 +84,55 @@ function initializeBoard() {
     // Default board
     board = Array(8).fill(null).map(() => Array(8).fill(null));
 
-    for (let i = 1; i < 7; i++) {
-        board[0][i] = new EvoBishop('black', 0, i);
-    }
     board[0][4] = new King('black', 0, 4);
-    for (let i = 2; i < 6; i++) {
-        board[1][i] = new EvoBishop('black', 1, i);
-    }
-    for (let i = 3; i < 5; i++) {
-        board[2][i] = new EvoBishop('black', 2, i);
+
+    for (let i = 0; i < 8; i++) {
+        if (i !== 4) {
+            board[0][i] = new EvoRook('black', 0, i);
+        }
+        board[1][i] = new EvoRook('black', 1, i);
     }
 
 
+    // White pieces
     board[7][0] = new Rook('white', 7, 0);
     board[7][7] = new Rook('white', 7, 7);
-    board[7][1] = new EvoKnight('white', 7, 1);
-    board[7][6] = new EvoKnight('white', 7, 6);
-    board[7][2] = new Bishop('white', 7, 2);
-    board[7][5] = new Bishop('white', 7, 5);
+    if (evo1 === 'Knight' || evo2 === 'Knight') {
+        board[7][1] = new EvoKnight('white', 7, 1);
+        board[7][6] = new EvoKnight('white', 7, 6);
+    }
+    else {
+        board[7][1] = new Knight('white', 7, 1);
+        board[7][6] = new Knight('white', 7, 6);
+    }
+    if (evo1 === 'Bishop' || evo2 === 'Bishop') {
+        board[7][2] = new EvoBishop('white', 7, 2);
+        board[7][5] = new EvoBishop('white', 7, 5);
+    }
+    else {
+        board[7][2] = new Bishop('white', 7, 2);
+        board[7][5] = new Bishop('white', 7, 5);
+    }
+
     board[7][3] = new Queen('white', 7, 3);
     board[7][4] = new King('white', 7, 4);
-    for (let i = 0; i < 8; i++) {
-        board[6][i] = new EvoPawn('white', 6, i);
+    if (evo1 === 'Pawn' || evo2 === 'Pawn') {
+        for (let i = 0; i < 8; i++) {
+            board[6][i] = new EvoPawn('white', 6, i);
+            if (3 <= i && i <= 5) {
+                board[5][i] = new EvoPawn('white', 5, i);
+            }
+
+        }
     }
-    board[5][2] = new EvoPawn('white', 5, 2);
-    board[5][4] = new EvoPawn('white', 5, 4);
-    board[5][6] = new EvoPawn('white', 5, 6);
+    else {
+        for (let i = 0; i < 8; i++) {
+            board[6][i] = new Pawn('white', 6, i);
+            if (3 <= i && i <= 5) {
+                board[5][i] = new Pawn('white', 5, i);
+            }
+        }
+    }
 }
 
 function drawPieces() {
@@ -150,8 +182,8 @@ function redraw() {
     drawMoves(); // Top layer
 }
 
-function handleClick(row, col) {
-    if (activePromotion) {
+async function handleClick(row, col) {
+    if (activePromotion || !evoSelectionMade) {
         return;
     }
     const clickedPiece = board[row][col];
@@ -188,6 +220,7 @@ function handleClick(row, col) {
                                 restartGame();
                             });
                         }
+                        saveGameState(board, null, turn, 'PVProok');
                     });
 
                     return; // prevents further logic from running until promotion completes
@@ -223,6 +256,7 @@ function handleClick(row, col) {
     }
 
     redraw();
+    await saveGameState(board, clickedPiece, turn, 'PVProok');
 
     let gameStatus = gameOver(board);
     if (gameStatus != null) {
@@ -262,13 +296,28 @@ function gameOver(board) {
     return null;
 }
 
-function restartGame() {
+async function restartGame() {
+    evo1 = null;
+    evo2 = null;
+
+    const e1 = document.getElementById('evo1');
+    const e2 = document.getElementById('evo2');
+
+    e1.selectedIndex = 0;
+    e2.selectedIndex = 0;
+    e1.disabled = false;
+    e2.disabled = false;
+
+    const { selection1, selection2 } = await processEvoSelections();
+    evo1 = selection1;
+    evo2 = selection2;
     initializeBoard();
     selectedTile = null;
     moves = [];
     turn = "white";
     lastMovedPiece = null;
     redraw();
+    await saveGameState(board, null, 'white', 'PVProok');
 }
 
 function triggerReset(winner) {
@@ -316,6 +365,128 @@ canvas.addEventListener('click', (e) => {
     handleClick(row, col);
 });
 
-initializeBoard();
-drawBoard();
-drawPieces();
+
+async function processEvoSelections() {
+    evoSelectionMade = false;
+
+    return new Promise((resolve) => {
+        function trySetup() {
+            const e1 = document.getElementById('evo1');
+            const e2 = document.getElementById('evo2');
+            if (e1 && e2) {
+                setupListeners(e1, e2, resolve);
+                return true;
+            }
+            return false;
+        }
+
+        if (!trySetup()) {
+            const observer = new MutationObserver(() => {
+                if (trySetup()) {
+                    observer.disconnect();
+                }
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+        }
+    });
+}
+
+function setupListeners(e1, e2, resolve) {
+    function tryResolve() {
+        if (e1.value && e2.value) {
+            e1.disabled = true;
+            e2.disabled = true;
+            evoSelectionMade = true;
+            resolve({ selection1: e1.value, selection2: e2.value });
+        }
+    }
+
+    e1.addEventListener('change', tryResolve);
+    e2.addEventListener('change', tryResolve);
+}
+
+async function firstStart() {
+    const { selection1, selection2 } = await processEvoSelections();
+    evo1 = selection1;
+    evo2 = selection2;
+    initializeBoard();
+    drawBoard();
+    drawPieces();
+    await saveGameState(board, null, 'white', 'PVProok');
+}
+
+async function saveGameState(board, selectedPiece, curTurn, level) {
+    const gameState = await updateGS(board, selectedPiece, curTurn, level);
+
+    await fetch('http://localhost:8001/updateState', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(gameState),
+    });
+}
+
+async function updateGS(board, selectedPiece, curTurn, level = "finalLevel") {
+    let boardJSON = null;
+    let selecPieceJSON = null
+    if (board !== null) {
+        boardJSON = Array(8).fill(null).map(() => Array(8).fill(null));
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const square = board[row][col];
+                if (square != null) {
+                    const pieceJSON = piece2JSON(square);
+                    boardJSON[row][col] = pieceJSON;
+                }
+            }
+        }
+    }
+    if (selectedPiece !== null) {
+        selecPieceJSON = piece2JSON(selectedPiece);
+    }
+
+    return {
+        "board": boardJSON,
+        "turn": curTurn,
+        "selectedPiece": selecPieceJSON,
+        "level": level
+    };
+}
+
+function piece2JSON(piece) {
+    if (!piece) {
+        return null;
+    }
+    let data = {
+        type: piece.constructor.name,  // e.g. "EvoKing", "Pawn", etc.
+        color: piece.color,
+        rank: piece.rank,
+        file: piece.file,
+        evod: piece.evod
+    };
+    if (piece instanceof Pawn) {
+        data.moved2 = piece.moved2;
+        data.onHomeSquare = piece.homeSquare; // boolean
+    }
+    else if (piece instanceof Rook) {
+        data.hasMoved = piece.hasMoved;
+    }
+    else if (piece instanceof King) {
+        data.hasMoved = piece.hasMoved;
+        if (piece instanceof EvoKing) {
+            data.remainingAllyCaptures = piece.allyCaptures;
+        }
+    }
+    else if (piece instanceof EvoQueen) {
+        const m = piece.minions || [];   // minions is undefined/null
+        let minionsJSON = [];
+        for (let minion of m) {
+            const pieceJson = piece2JSON(minion);
+            minionsJSON.push(pieceJson);
+        }
+        data.minions = minionsJSON;
+    }
+
+    return data;
+}
+
+firstStart();

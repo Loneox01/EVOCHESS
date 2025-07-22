@@ -4,6 +4,13 @@ import { Rook } from '../Pieces/RookFiles/Rook.js';
 import { Queen } from '../Pieces/QueenFiles/Queen.js';
 import { King } from '../Pieces/KingFiles/King.js';
 import { Pawn } from '../Pieces/PawnFiles/Pawn.js';
+import { EvoPawn } from '../Pieces/PawnFiles/EvoPawn.js';
+import { Piece } from '../Pieces/Piece.js';
+import { EvoKnight } from '../Pieces/KnightFiles/EvoKnight.js';
+import { EvoBishop } from '../Pieces/BishopFiles/EvoBishop.js';
+import { EvoRook } from '../Pieces/RookFiles/EvoRook.js';
+import { EvoQueen } from '../Pieces/QueenFiles/EvoQueen.js';
+import { EvoKing } from '../Pieces/KingFiles/EvoKing.js';
 
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
@@ -12,8 +19,8 @@ const tileLen = canvas.width / 8;
 const LIGHT = '#f0d9b5'; // Light tileLens
 const DARK = '#b58863'; // Dark tileLens
 
+let activePromotion = false; // True if promotion menu is present
 let turn = "white"; // Turn tracker, either "white" or "black"
-let activePromotion = false;
 
 // Initial setup of the board
 let board = Array(8).fill(null).map(() => Array(8).fill(null));
@@ -72,28 +79,36 @@ function initializeBoard() {
     // Default board
     board = Array(8).fill(null).map(() => Array(8).fill(null));
 
-    board[0][0] = new Rook('black');
-    board[0][7] = new Rook('black');
-    board[0][1] = new Knight('black');
-    board[0][6] = new Knight('black');
-    board[0][2] = new Bishop('black');
-    board[0][5] = new Bishop('black');
-    board[0][3] = new Queen('black', 0, 3);
     board[0][4] = new King('black', 0, 4);
-    for (let i = 0; i < 8; i++) {
-        board[1][i] = new Pawn('black');
+    // N1
+    for (let i = 0; i < 4; i++) {
+        const n = new EvoKnight('black', i, 0);
+        const x = new EvoKnight('black', i, 3);
+        board[i][0] = n;
+        board[i][3] = x;
     }
 
-    board[7][0] = new Rook('white');
-    board[7][7] = new Rook('white');
-    board[7][1] = new Knight('white');
-    board[7][6] = new Knight('white');
-    board[7][2] = new Bishop('white');
-    board[7][5] = new Bishop('white');
+    const n = new EvoKnight('black', 1, 1);
+    const n1 = new EvoKnight('black', 2, 2);
+    board[1][1] = n;
+    board[2][2] = n1;
+
+    for (let i = 0; i < 3; i++) {
+        board[3 - i][5 + i] = new EvoKnight('black', 3 - i, 5 + i);
+        board[1 + i][5 + i] = new EvoKnight('black', 1 + i, 5 + i);
+    }
+
+
+    board[7][0] = new Rook('white', 7, 0);
+    board[7][7] = new Rook('white', 7, 7);
+    board[7][1] = new Knight('white', 7, 1);
+    board[7][6] = new Knight('white', 7, 6);
+    board[7][2] = new Bishop('white', 7, 2);
+    board[7][5] = new Bishop('white', 7, 5);
     board[7][3] = new Queen('white', 7, 3);
     board[7][4] = new King('white', 7, 4);
     for (let i = 0; i < 8; i++) {
-        board[6][i] = new Pawn('white');
+        board[6][i] = new EvoPawn('white', 6, i);
     }
 }
 
@@ -111,6 +126,11 @@ function drawPieces() {
                 const y = row * tileLen + tileLen / 2; // y Location
                 ctx.fillStyle = (piece.color === 'white' ? 'white' : 'black');
                 ctx.fillText(symbol, x, y);
+
+                if (piece.evod) {
+                    ctx.fillStyle = 'rgba(90, 0, 150, 0.25)'; // Highlight
+                    ctx.fillRect(col * tileLen, row * tileLen, tileLen, tileLen);
+                }
             }
 
             if (selectedTile && selectedTile.row === row && selectedTile.col === col) {
@@ -139,7 +159,7 @@ function redraw() {
     drawMoves(); // Top layer
 }
 
-function handleClick(row, col) {
+async function handleClick(row, col) {
     if (activePromotion) {
         return;
     }
@@ -177,6 +197,7 @@ function handleClick(row, col) {
                                 restartGame();
                             });
                         }
+                        saveGameState(board, null, turn, 'PVPknight');
                     });
 
                     return; // prevents further logic from running until promotion completes
@@ -212,6 +233,7 @@ function handleClick(row, col) {
     }
 
     redraw();
+    await saveGameState(board, clickedPiece, turn, 'PVPknight');
 
     let gameStatus = gameOver(board);
     if (gameStatus != null) {
@@ -251,13 +273,14 @@ function gameOver(board) {
     return null;
 }
 
-function restartGame() {
+async function restartGame() {
     initializeBoard();
     selectedTile = null;
     moves = [];
     turn = "white";
     lastMovedPiece = null;
     redraw();
+    await saveGameState(board, null, 'white', 'PVPknight');
 }
 
 function triggerReset(winner) {
@@ -268,6 +291,7 @@ function triggerReset(winner) {
     overlay.style.display = 'flex';
 }
 
+
 export function setup() {
     initializeBoard();
     drawBoard();
@@ -275,10 +299,9 @@ export function setup() {
 }
 
 export function startGame() {
-
-    const canvas = document.getElementById("board");
     canvas.onclick = null; // reset
     canvas.onclick = (e) => {
+
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
@@ -290,18 +313,11 @@ export function startGame() {
     }; // set
 
     restartGame();
-
-    return {
-        redraw,
-        createPromotedPiece
-    }; // For loader.js
 }
-
-
 
 canvas.addEventListener('click', (e) => {
 
-    // add
+    // interactive
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -311,6 +327,80 @@ canvas.addEventListener('click', (e) => {
 
     handleClick(row, col);
 });
+
+async function saveGameState(board, selectedPiece, curTurn, level) {
+    const gameState = await updateGS(board, selectedPiece, curTurn, level);
+
+    await fetch('http://localhost:8001/updateState', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(gameState),
+    });
+}
+
+async function updateGS(board, selectedPiece, curTurn, level = "finalLevel") {
+    let boardJSON = null;
+    let selecPieceJSON = null
+    if (board !== null) {
+        boardJSON = Array(8).fill(null).map(() => Array(8).fill(null));
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const square = board[row][col];
+                if (square != null) {
+                    const pieceJSON = piece2JSON(square);
+                    boardJSON[row][col] = pieceJSON;
+                }
+            }
+        }
+    }
+    if (selectedPiece !== null) {
+        selecPieceJSON = piece2JSON(selectedPiece);
+    }
+
+    return {
+        "board": boardJSON,
+        "turn": curTurn,
+        "selectedPiece": selecPieceJSON,
+        "level": level
+    };
+}
+
+function piece2JSON(piece) {
+    if (!piece) {
+        return null;
+    }
+    let data = {
+        type: piece.constructor.name,  // e.g. "EvoKing", "Pawn", etc.
+        color: piece.color,
+        rank: piece.rank,
+        file: piece.file,
+        evod: piece.evod
+    };
+    if (piece instanceof Pawn) {
+        data.moved2 = piece.moved2;
+        data.onHomeSquare = piece.homeSquare; // boolean
+    }
+    else if (piece instanceof Rook) {
+        data.hasMoved = piece.hasMoved;
+    }
+    else if (piece instanceof King) {
+        data.hasMoved = piece.hasMoved;
+        if (piece instanceof EvoKing) {
+            data.remainingAllyCaptures = piece.allyCaptures;
+        }
+    }
+    else if (piece instanceof EvoQueen) {
+        const m = piece.minions || [];   // minions is undefined/null
+        let minionsJSON = [];
+        for (let minion of m) {
+            const pieceJson = piece2JSON(minion);
+            minionsJSON.push(pieceJson);
+        }
+        data.minions = minionsJSON;
+    }
+
+    return data;
+}
 
 initializeBoard();
 drawBoard();

@@ -292,7 +292,7 @@ async function handleClick(row, col) {
                                     restartGame();
                                 });
                             }
-
+                            saveGameState(board, null, turn, 'finalLevel');
                             handleClick(null, null);
                         });
                     }
@@ -322,7 +322,7 @@ async function handleClick(row, col) {
                                     restartGame();
                                 });
                             }
-
+                            saveGameState(board, null, turn, 'finalLevel');
                             handleClick(null, null);
                         });
                     }
@@ -386,6 +386,7 @@ async function handleClick(row, col) {
     }
 
     redraw();
+    await saveGameState(board, clickedPiece, turn, 'finalLevel');
 
     let gameStatus = gameOver(board);
     if (gameStatus != null) {
@@ -393,7 +394,7 @@ async function handleClick(row, col) {
         triggerReset(gameStatus);
         document.getElementById('gameOverOverlay').addEventListener('click', () => {
             document.getElementById('gameOverOverlay').style.display = 'none';
-            restartGame(); // You define this to reinit the board
+            restartGame();
         });
     }
 }
@@ -451,6 +452,7 @@ async function restartGame() {
     lastMovedPiece = null;
     redraw();
     gameFinished = false;
+    await saveGameState(board, null, 'white', 'finalLevel');
 }
 
 function triggerReset(winner) {
@@ -462,6 +464,7 @@ function triggerReset(winner) {
 }
 
 async function blackBot() {
+    await saveGameState(board, null, 'black', 'finalLevel');
 
     let gameStatus = gameOver(board);
     if (gameStatus != null) {
@@ -546,6 +549,7 @@ async function blackBot() {
                     restartGame();
                 });
             }
+            await saveGameState(board, null, 'white', 'finalLevel');
             return;
         }
     }
@@ -616,6 +620,7 @@ async function blackBot() {
 
                     selectedTile = null;
                     getMinions(board);
+                    await saveGameState(board, null, 'white', 'finalLevel');
                     return;
                 }
             }
@@ -639,6 +644,7 @@ async function blackBot() {
                     blackPieces.push(spawned);
                 }
                 getMinions(board);
+                await saveGameState(board, null, 'white', 'finalLevel');
                 return;
             }
 
@@ -703,6 +709,7 @@ async function blackBot() {
                             lastMovedPiece = bp;
                             getMinions(board);
                             redraw();
+                            await saveGameState(board, null, 'white', 'finalLevel');
                             return;
                         }
                     }
@@ -793,6 +800,7 @@ async function blackBot() {
 
             lastMovedPiece = piece;
             getMinions(board);
+            await saveGameState(board, null, 'white', 'finalLevel');
             return;
         }
 
@@ -817,6 +825,7 @@ async function blackBot() {
         // No move found, pass
         lastMovedPiece = null;
         // No need to getMinions, no move made
+        await saveGameState(board, null, 'white', 'finalLevel');
         return;
     }
 
@@ -885,7 +894,7 @@ async function blackBot() {
     lastMovedPiece = rP;
 
     getMinions(board);
-
+    await saveGameState(board, null, 'white', 'finalLevel');
     return;
 }
 
@@ -1030,6 +1039,7 @@ async function firstStart() {
     initializeBoard();
     drawBoard();
     drawPieces();
+    await saveGameState(board, null, 'white', 'finalLevel');
 }
 
 function getMinions(board) {
@@ -1065,4 +1075,77 @@ function getMinions(board) {
     return board;
 }
 
+async function saveGameState(board, selectedPiece, curTurn, level) {
+    const gameState = await updateGS(board, selectedPiece, curTurn, level);
+
+    await fetch('http://localhost:8001/updateState', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(gameState),
+    });
+}
+
+async function updateGS(board, selectedPiece, curTurn, level = "finalLevel") {
+    let boardJSON = null;
+    let selecPieceJSON = null
+    if (board !== null) {
+        boardJSON = Array(8).fill(null).map(() => Array(8).fill(null));
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const square = board[row][col];
+                if (square != null) {
+                    const pieceJSON = piece2JSON(square);
+                    boardJSON[row][col] = pieceJSON;
+                }
+            }
+        }
+    }
+    if (selectedPiece !== null) {
+        selecPieceJSON = piece2JSON(selectedPiece);
+    }
+
+    return {
+        "board": boardJSON,
+        "turn": curTurn,
+        "selectedPiece": selecPieceJSON,
+        "level": level
+    };
+}
+
+function piece2JSON(piece) {
+    if (!piece) {
+        return null;
+    }
+    let data = {
+        type: piece.constructor.name,  // e.g. "EvoKing", "Pawn", etc.
+        color: piece.color,
+        rank: piece.rank,
+        file: piece.file,
+        evod: piece.evod
+    };
+    if (piece instanceof Pawn) {
+        data.moved2 = piece.moved2;
+        data.onHomeSquare = piece.homeSquare; // boolean
+    }
+    else if (piece instanceof Rook) {
+        data.hasMoved = piece.hasMoved;
+    }
+    else if (piece instanceof King) {
+        data.hasMoved = piece.hasMoved;
+        if (piece instanceof EvoKing) {
+            data.remainingAllyCaptures = piece.allyCaptures;
+        }
+    }
+    else if (piece instanceof EvoQueen) {
+        const m = piece.minions || [];   // minions is undefined/null
+        let minionsJSON = [];
+        for (let minion of m) {
+            const pieceJson = piece2JSON(minion);
+            minionsJSON.push(pieceJson);
+        }
+        data.minions = minionsJSON;
+    }
+
+    return data;
+}
 firstStart();
