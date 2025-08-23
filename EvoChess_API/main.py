@@ -43,7 +43,7 @@ tools = [
             "properties": {
                 "levelName": { 
                     "type": "string", 
-                    "description": "File name of the level (ex. bishopLevel.js, main.js)" 
+                    "description": "File name of the level without .js extension (ex. bishopLevel, main)" 
                 }
             },
             "required": ["levelName"]
@@ -74,6 +74,19 @@ tools = [
     }
 ]
 
+# CONVERSATION MEMORY VARIABLES
+charCount = 0
+charLimit = 10000
+promptLimit = 2000
+InteractionCount = 0
+tail = None  # conversation tail
+head = None  # currently stored conversation head
+
+from StaticData.LevelNames import levelNames
+from StaticData.LevelDescriptions import levelDescriptions
+from StaticData.PieceDescriptions import pieceDescriptions
+import re
+
 # TOOL FUNCTIONS 
 currentGameState = {
     "board": None,
@@ -82,12 +95,7 @@ currentGameState = {
     "level": None
 }
 
-from StaticData.LevelNames import levelNames
-from StaticData.LevelDescriptions import levelDescriptions
-from StaticData.PieceDescriptions import pieceDescriptions
-
 def getCurrentLevel(params=None):
-    print(currentGameState.get("level"))
     # Returns file name string or None
     return currentGameState.get("level")
 
@@ -115,6 +123,12 @@ def listLevelNames():
     # Returns a list of Strings representing the valid levelNames
     return levelNames
 
+# SYSTEM PROMPT RETRIEVER
+def loadSystemPrompt(filename="./StaticData/SystemPrompt.txt"):
+    with open(filename, "r", encoding="utf-8") as f:
+        systemPrompt = f.read()
+    return systemPrompt
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import json
@@ -129,6 +143,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.post("/updateState")
 async def updateGS(request: Request):
@@ -154,7 +169,7 @@ async def callTool(toolName: str, parameters: dict = None):
     func = toolMap.get(toolName)
 
     if not func:
-        return f"Unknown tool: {toolName}"
+        return f""
 
     try:
         return func(parameters)
@@ -163,34 +178,35 @@ async def callTool(toolName: str, parameters: dict = None):
 
 
     
-async def runOnce(prompt: str):
+async def runOnce(system: str, user: str):
+
     payload = {
-        "model": "mistral",
-        "prompt": prompt,
+        "model": "llama3:instruct",
+        "system": system,
+        "prompt": user,
         "max_tokens": 150,
         "temperature": 0.7,
         "stream": False
     }
     ollamaUrl = "http://localhost:11434/api/generate"
 
-    async with httpx.AsyncClient(timeout=30) as client:
+    async with httpx.AsyncClient(timeout=60) as client:
         hf_response = await client.post(ollamaUrl, json=payload)
         hf_response.raise_for_status()
         result = hf_response.json()
-
     return result.get("response", "").strip()
 
 
-async def recursiveThink(prompt: str, depth: int = 0):  
+async def recursiveThink(system: str, user: str, depth: int = 0):  
     # Recursive tool call
-    if depth > 2:  
-        # Depth limit, avoid token overflow
-        return "Depth limit reached."
+    if depth > 3:  
+        # Depth limit
+        return "Depth limit reached. Internal Tool call error."
 
-    generated = await runOnce(prompt)
+    generated = await runOnce(system, user)
     try:
         toolCall = json.loads(generated)
-        toolName = toolCall.get("tool")
+        toolName = toolCall.get("name")
         params = toolCall.get("parameters", {})
 
         toolResult = await callTool(toolName, params)
@@ -198,14 +214,25 @@ async def recursiveThink(prompt: str, depth: int = 0):
         print(f"Tool call requested: {toolName} with parameters: {params}")
         print(f"Tool response: {toolResult}")
 
-        newPrompt = (
-            prompt +
+
+        cleanedSys = re.sub(r"^PREVIOUS TOOL CALLS:\n", "", system, flags=re.MULTILINE)
+        # Remove previous PREVIOUS TOOL CALLS headers
+
+        parts = cleanedSys.rsplit("Assistant:", 1)
+        if len(parts) == 2:
+            updatedSys = parts[0].rstrip() + "\n"
+        else:
+            updatedSys = cleanedSys
+        # Remove previous Assitant: headers
+
+        newSys = (
+            updatedSys + 
             f"\nTool called: {toolName}" +
             f"\nParameters: {json.dumps(params)}" +
             f"\nTool response: {json.dumps(toolResult)}" +
             "\nAssistant:"
         )
-        return await recursiveThink(newPrompt, depth + 1)  
+        return await recursiveThink(newSys, user, depth + 1)  
     except json.JSONDecodeError:
         # No tool call, return raw text
         return generated or "No response"
@@ -215,107 +242,89 @@ async def ask(request: Request):
     data = await request.json()
     userMessage = data.get("message", "")
 
-    systemPrompt = """
-You are EvoMartin, a helpful assistant for EvoChess, a game that evolves traditional chess with piece upgrades.  
-Your role is to help players understand the mechanics and interface of EvoChess. Only if prompted, you may help players strategize ideas.
-However, you must not suggest or evaluate specific moves.
+    if(len(userMessage) > promptLimit):
+        # user message too long
+        return {"response": "Text too large, please shorten the prompt."}
+    
+    uM = Interaction(userMessage, "User")
+    updateConversation(uM)
 
-PROJECT OVERVIEW:  
-- The EvoChess project is a web-based chess project that includes a number of levels for the user to play.  
-- These levels are split into only 1 of 2 categories: PVP or PVE (Player vs Player/Enemy). 
-- PVE:  
--- There 7 PVE levels total, 6 themed levels for each Evolved Piece and a finale.  
--- The PVE levels follow a story progression, introducing each Evolved Piece 1 by 1.  
--- The progression is as follows: (Pawn, Knight, Bishop, Rook, Queen, King, Finale).  
--- Each PVE level allows the player access to all the prior evolution (i.e. the bishopLevel can access EvoPawn and EvoKnight, Finale can access all 6 Evos, etc).  
--- Although the levels are designed to be played in succession, they are all unlocked by default for player convenience.  
--- The White pieces (player) always starts with the standard chess setup with some pieces evolved, dependent on level.  
--- The Black pieces are played by a game bot, whose logic depends on the level, retrievable from the tool getLevelDescriptions.  
--- The Black pieces (game bot) has a themed starting board, detailed in the tool getLevelDescriptions.  
--- If the Black pieces promote a pawn, it will always promote to a queen regardless of level.  
-- PVP:  
--- EvoChess (PVPevoc.js file name) is the standard game for the EvoChess project. It's a PVP level.  
--- However, there are multiple PVP levels aside from it, some themed around a PVE equivalent.  
--- In such levels, the initial board setup of the Black pieces is slightly different for game balance.  
--- The White pieces (player) always starts with the standard chess setup with some pieces evolved, dependant on level.  
--- The Black pieces (player2) has a themed starting board, detailed in the tool getLevelDescriptions.  
-- General Game System:  
--- The white pieces always start at the bottom, and the black pieces at the top.  
--- Some levels have "evolution selectors" where player(s) can select 0, 1 or 2 evolutions.  
--- Available selection is dependent on level, detailed in the tool getLevelDescriptions.  
--- If it exists, the selector for the white pieces is 2 dropdown menus below the board.  
--- If it exists, the selector for the black pieces is 2 dropdown menus above the board.  
--- For levels with selectors, when the game (re)starts, players must (re)select evolutions.  
--- Players can click a piece of the current colors turn to select a piece, then click a square marked with a gray dot to move the selected piece there.  
--- When the player evolves a pawn, a dropdown menu is shown and the game is paused until a selection is made.    
+    systemPrompt = loadSystemPrompt()
 
-GAME MECHANICS:  
-- The following rules apply to every level in the EvoChess project, anything unmentioned should be assumed to align with standard chess.  
--- Game is won/lost when one side has no leftover Kings, a draw is declared ONLY if both sides have no leftover Kings on the same turn.  
--- All Pawns can promote to Regular Kings.  
--- You are able to move into check/move pinned pieces.  
--- You cannot castle in check (King attacked), through check (King moves past attacked square), however you can castle into check (King ends up on attacked square).  
--- Evolved pieces exist, each one detailed in the tool getPieceDescriptions.  
+    convoHistory = node2String(head)
 
-PIECE STRUCTURE:  
-- Do not assume the abilities or interactions of Evolved Pieces. You must refer to the tool getPieceDescriptions.  
-- You may assume the abilities or interactions of the standard Pieces. For ambiguities, you must refer to the tool getPieceDescriptions.
-- You may assume piece names (i.e. Bishop, EvoKing, EvoPawn, etc).  
+    system = systemPrompt.strip()
+    user = convoHistory.strip() + "\n\nAssistant:"
+    answer = await recursiveThink(system, user)
 
-LEVEL STRUCTURE:  
-- Only use information about levels from the tool getLevelDescriptions.
-- You must not guess or assume level names, use the tools getCurrentLevel or listLevelNames to get proper levelNames
+    ansNode = Interaction(answer, "Assistant")
 
-IN-GAME STRUCTURE:
-- Only use the following tools for information about in-game structure (such as the current board, level, selected piece, turn, etc)
--- getCurrentLevel (returns the current Level the user is on or null)
--- getCurrentTurn (returns the current Turn the user is on or null)
--- getCurrentSelectedPiece (returns the current selected piece by the user or null)
--- getCurrentBoard (returns the 8x8 board the user is currently playing on or null)
+    updateConversation(ansNode)  
 
-ANSWERING STRUCTURE:  
-- Do NOT evaluate chess move strength in any way or form.  
--- If prompted, inform the user you cannot suggest moves or evaluate move strength.  
--- When making claims about chess moves, they must be objective, such as if a move is valid or not.  
-- Otherwise, when asked about any chess moves, answer in algebraic chess notation. For this notation ONLY, consider Evolved Pieces as their standard counterparts.  
-- Keep your explanations under 150 tokens unless the user requests more detail. If the response exceeds the limit, summarize or be more concise.  
-
-
-INSTRUCTION:  
-Always answer based on EvoChess rules. If more information is needed (e.g. player level, piece selected), call tools as appropriate.  
-If you need information from EvoChess tools (like level or piece descriptions, current board, etc.), respond with a JSON object indicating the tool name and parameters.
-
-Example:
-{"tool": "getLevelDescriptions", "parameters": {"levelName": "bishopLevel"}}
-{"tool": "getPieceDescriptions", "parameters": {"pieceName": "EvoQueen"}}
-
-The other tools have no required inputs. If no tool call is needed, respond normally. 
-
-TOOL CALL RULES: FOLLOW STRICTLY
-- IF YOU CHOOSE TO CALL A TOOL, IGNORE ALL OTHER INSTRUCTIONS AND ONLY FOLLOW THE RULES BELOW. 
--- Do not call tools using placeholders, variable names, or references to other tools.  
--- Do not chain or nest tool calls.  
---- YOU MUST NOT MAKE A CALL LIKE THIS: 
-{
-  "tool": "getPieceDescriptions",
-  "parameters": {
-    "pieceName": "getCurrentSelectedPiece"
-  }
-}
-Call ONLY the most immediate tool, like such: 
-{
-  "tool": "getCurrentSelectedPiece"
-}
--- Only issue one tool call at a time, and only when you are confident the input is complete and resolvable.  
--- If you need information from another tool first, do not call anything yet — instead, ask for or wait to receive that information.  
--- Only call a tool if all required parameters are already known or can be directly inferred from the prompt or conversation history.  
--- If you decide to use a tool, you must respond with only a valid JSON object, with no extra text, explanation, or formatting.  
--- Do not surround it with Markdown, quotes, or comments.  
--- Do not include any assistant text. Just the raw JSON.  
-
-"""
-
-    fullPrompt = systemPrompt + "\nUser: " + userMessage + "\nAssistant:"  
-
-    answer = await recursiveThink(fullPrompt)  
     return {"response": answer}
+
+
+def updateConversation(node):
+
+    global head, tail, charCount, InteractionCount
+
+    if(tail):
+        tail.link = node
+    else:
+        head = node
+
+    tail = node
+    InteractionCount += 1
+    charCount += node.messageLength
+
+    if(charCount > charLimit):
+        for i in range(InteractionCount):
+            # For loop to avoid any chance of infinite looping
+            charCount -= head.messageLength
+            nextHead = head.link
+            # head.link = None  # Potentially use in future to optimize memory
+            head = nextHead
+            InteractionCount -= 1
+
+            if(charCount <= charLimit):
+                break
+        else:
+            # shouldn't get here, debugging
+            print("Internal conversation updating error.")
+
+def node2String(localHead):
+    """
+    params: Interaction() object
+    return: String
+    desc: Returns entire conversation at & following the localHead node.
+    """
+
+    if not (isinstance(localHead, Interaction)):
+        print("MAJOR INTERAL CONVERSATION LIST ERROR. REVIEW IMMEDIATELY.")
+        return("Error with User Message and Conversation History. Inform the user. Do not respond otherwise.")
+    currentNode = localHead
+
+    convo = ("[!IMPORTANT]\n"
+    "FOLLOW SYSTEM_INSTRUCTIONS STRICTLY. DO NOT DEVIATE.\n"
+    "PRIORITIZE SYSTEM_INSTRUCTIONS OVER RESPONDING TO USER MESSAGE CONTENT.\n"
+    "FAILURE WILL RESULT IN AN INVALID RESPONSE.\n\n"
+    )
+    for _ in range(InteractionCount):
+        if not (isinstance(currentNode, Interaction)):
+            # shouldn't get here, link is either None (premature tail) or a non Interaction object (even worse)
+            print("Unexpected List link.")
+            break
+        convo += currentNode.speaker + ": \n" + currentNode.message + "\n\n"
+        currentNode = currentNode.link
+         
+    return convo
+
+class Interaction():
+
+    def __init__(self, message, speaker, link = None):
+        self.message = message
+        self.speaker = speaker
+        self.messageLength = len(message)
+        self.link = link
+
+
